@@ -3,13 +3,17 @@ __author__ = 'duangan'
 
 import time
 import tensorflow as tf
-from tensorflow.examples.tutorials.mnist import input_data
 import inference as mnist_inference
-import accuracy as mnist_train
 
-EVAL_INTERVAL_SECS = 10
+'''[summary]
 
-def evaluate(mnist):
+[description]
+	mnist: 输入数据源
+	decay: 滑动平均衰减率
+	model_path: model文件的路径
+	time_interval: 统计间隔，单位为秒
+'''
+def evaluate(mnist, decay, model_path, time_interval):
 	with tf.Graph().as_default() as g:
 		# 输入数据
 		x = tf.placeholder(tf.float32, [None, mnist_inference.INPUT_NODE], name='x-input')
@@ -23,13 +27,13 @@ def evaluate(mnist):
 		accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 		#给定滑动平均衰减率和训练轮数的变量，初始化滑动平均类
-		variable_averages = tf.train.ExponentialMovingAverage(mnist_train.MOVING_AVERAGE_DECAY)
+		variable_averages = tf.train.ExponentialMovingAverage(decay)
 		variables_to_restore = variable_averages.variables_to_restore()
 		saver = tf.train.Saver(variables_to_restore)
 
 		while True:
 			with tf.Session() as sess:
-				ckpt = tf.train.get_checkpoint_state(mnist_train.MODEL_SAVE_PATH)
+				ckpt = tf.train.get_checkpoint_state(model_path)
 				if ckpt and ckpt.model_checkpoint_path:
 					saver.restore(sess, ckpt.model_checkpoint_path)
 					# 通过文件名得到模型保存时迭代的轮次。
@@ -41,12 +45,4 @@ def evaluate(mnist):
 				else:
 					print ('No checkpoint file found')
 					return
-					time.sleep(EVAL_INTERVAL_SECS)
-
-def main(argv=None):
-	mnist = input_data.read_data_sets("./MNIST_data/", one_hot=True)
-	evaluate(mnist)
-
-
-if __name__ == '__main__':
-	tf.app.run()
+				time.sleep(time_interval)

@@ -13,7 +13,7 @@ BATCH_SIZE = 100  # 每次batch打包的样本个数
 LEARNING_RATE_BASE = 0.8    #基础学习率
 LEARNING_RATE_DECAY = 0.99  #学习率的衰减率
 REGULARIZATION_RATE = 0.0001 #描述模型复杂度的正则化项在损失函数中的系数
-TRAINING_STEPS = 8000   #训练轮数
+TRAINING_STEPS = 10000   #训练轮数
 MOVING_AVERAGE_DECAY = 0.99 #滑动平均衰减率
 
 # 模型保存的路径和文件名
@@ -102,16 +102,4 @@ def train(mnist):
                     _, loss_value, step = sess.run([train_op, loss, global_step], feed_dict={x: xs, y_: ys})
     
     writer.close()
-
-
-def main(argv=None):
-    mnist = input_data.read_data_sets("./MNIST_data/", one_hot=True)
-    train(mnist)
-
-
-if __name__ == '__main__':
-    print('===begin===')
-    main()
-    print('===end===')
-
 

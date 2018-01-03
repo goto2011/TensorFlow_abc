@@ -24,7 +24,7 @@ LOG_SAVE_PATH = "../log/"
 
 
 '''训练模型的过程'''
-def train(mnist):
+def train_once(mnist):
     # 初始化 base variable
     mnist_variable.init_base_variable(784, 10, 100, 0.8, 0.99, 0.0001, 10000, 0.99)
     with tf.Session() as sess:
@@ -97,7 +97,7 @@ def train(mnist):
 
 def main(argv=None):
     mnist = input_data.read_data_sets(INPUT_DATA_PATCH, one_hot=True)
-    train(mnist)
+    train_once(mnist)
 
 
 if __name__ == '__main__':

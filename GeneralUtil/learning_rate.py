@@ -2,8 +2,7 @@
 __author__ = 'duangan'
 
 import tensorflow as tf
-
-import GeneralUtil.base_variable as base_variable
+import base_variable
 
 
 # 处理学习率

@@ -12,17 +12,8 @@ import GeneralUtil.learning_rate as mnist_learning_rate
 import GeneralUtil.base_variable as mnist_variable
 
 
-'''配置神经网络的参数'''
-BATCH_SIZE = 100  # 每次batch打包的样本个数
-
-# 模型相关的参数
-LEARNING_RATE_BASE = 0.8    #基础学习率
-LEARNING_RATE_DECAY = 0.99  #学习率的衰减率
-REGULARIZATION_RATE = 0.0001 #描述模型复杂度的正则化项在损失函数中的系数
-TRAINING_STEPS = 10000   #训练轮数
-MOVING_AVERAGE_DECAY = 0.99 #滑动平均衰减率
-
-
+#数据源文件夹
+INPUT_DATA_PATCH="./MNIST_data/"
 
 # 模型保存的路径和文件名
 MODEL_SAVE_PATH = "../model/"
@@ -35,28 +26,33 @@ LOG_SAVE_PATH = "../log/"
 '''训练模型的过程'''
 def train(mnist):
     # 初始化 base variable
-    mnist_variable.init_base_variable(700, 10, 100, 0.8, 0.99, 0.0001, 10000, 0.99)
+    mnist_variable.init_base_variable(784, 10, 100, 0.8, 0.99, 0.0001, 10000, 0.99)
     with tf.Session() as sess:
         tf.global_variables_initializer().run()
+        input_node = mnist_variable.get_input_node().eval()
+        output_node = mnist_variable.get_output_node().eval()
+        training_steps = mnist_variable.get_training_steps().eval()
+        batch_size = mnist_variable.get_batch_size().eval()
+
         mnist_variable.base_variable_dump(sess)
 
     # 输入数据
     with tf.name_scope('input'):
         # 维度可以自动算出，也就是样本数
-        x = tf.placeholder(tf.float32, [None, mnist_inference.INPUT_NODE], name='x-input')
-        y_ = tf.placeholder(tf.float32, [None, mnist_inference.OUTPUT_NODE], name='y-input')
+        x = tf.placeholder(tf.float32, [None, input_node], name='x-input')
+        y_ = tf.placeholder(tf.float32, [None, output_node], name='y-input')
 
-    # 损失函数
-    regularizer = tf.contrib.layers.l2_regularizer(REGULARIZATION_RATE)  #正则化损失函数
+    # 正则化损失函数
+    regularizer = tf.contrib.layers.l2_regularizer(mnist_variable.get_regularization_rate())
 
     # 计算前向传播结果
-    y = mnist_inference.inference(x, regularizer)
+    y = mnist_inference.inference(x, regularizer, input_node, output_node)
 
     # 定义训练轮数及相关的滑动平均类
     global_step = tf.Variable(0, trainable=False)   # 将训练轮数的变量指定为不参与训练的参数
 
     # 处理平滑
-    variables_averages_op = mnist_average.get_average_op(MOVING_AVERAGE_DECAY, global_step)
+    variables_averages_op = mnist_average.get_average_op(global_step)
 
     # 处理损失函数
     loss = minist_loss.get_total_loss(y, y_)
@@ -75,8 +71,8 @@ def train(mnist):
             tf.global_variables_initializer().run()
 
             # 测试数据的验证过程放在另外一个独立程序中进行
-            for i in range(mnist_variable.get_training_steps().eval()):
-                xs, ys = mnist.train.next_batch(BATCH_SIZE)
+            for i in range(training_steps):
+                xs, ys = mnist.train.next_batch(batch_size)
 
                 if i % 1000 == 0:
                     # 配置运行时需要记录的信息
@@ -100,7 +96,7 @@ def train(mnist):
     writer.close()
 
 def main(argv=None):
-    mnist = input_data.read_data_sets("./MNIST_data/", one_hot=True)
+    mnist = input_data.read_data_sets(INPUT_DATA_PATCH, one_hot=True)
     train(mnist)
 
 

@@ -3,7 +3,8 @@ __author__ = 'duangan'
 
 import time
 import tensorflow as tf
-import inference as mnist_inference
+import inference
+import base_variable
 
 '''[summary]
 
@@ -16,11 +17,11 @@ import inference as mnist_inference
 def evaluate(mnist, decay, model_path, time_interval):
 	with tf.Graph().as_default() as g:
 		# 输入数据
-		x = tf.placeholder(tf.float32, [None, mnist_inference.INPUT_NODE], name='x-input')
-		y_ = tf.placeholder(tf.float32, [None, mnist_inference.OUTPUT_NODE], name='y-input')
+		x = tf.placeholder(tf.float32, [None, mnist_variable.get_input_node()], name='x-input')
+		y_ = tf.placeholder(tf.float32, [None, base_variable.get_output_node()], name='y-input')
 		validate_feed = {x: mnist.validation.images, y_: mnist.validation.labels}
 
-		y = mnist_inference.inference(x, None)
+		y = inference.inference(x, None)
 
 		# 计算正确率
 		correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))

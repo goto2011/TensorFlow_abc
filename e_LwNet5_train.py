@@ -1,6 +1,8 @@
 import tensorflow as tf
+import numpy as np
 from tensorflow.examples.tutorials.mnist import input_data
-import GeneralUtil.inference_mnist as mnist_inference
+#import GeneralUtil.inference_mnist as mnist_inference
+import GeneralUtil.infernece_LeNet5 as inference
 import os
 
 BATCH_SIZE = 100
@@ -18,11 +20,16 @@ MODEL_NAME="b_mnist.ckpt"
 
 def train(mnist):
 
-    x = tf.placeholder(tf.float32, [None, INPUT_NODE], name='x-input')
+    x = tf.placeholder(tf.float32, [
+        BATCH_SIZE,
+        inference.IMAGE_SIZE,
+        inference.IMAGE_SIZE,
+        inference.NUM_CHANNELS],
+        name='x-input')
     y_ = tf.placeholder(tf.float32, [None, OUTPUT_NODE], name='y-input')
 
     regularizer = tf.contrib.layers.l2_regularizer(REGULARIZATION_RATE)
-    y = mnist_inference.inference(x, regularizer, INPUT_NODE, OUTPUT_NODE)
+    y = inference.inference(x, False, regularizer)
     global_step = tf.Variable(0, trainable=False)
 
     variable_averages = tf.train.ExponentialMovingAverage(MOVING_AVERAGE_DECAY, global_step)
@@ -46,7 +53,13 @@ def train(mnist):
 
         for i in range(TRAINING_STEPS):
             xs, ys = mnist.train.next_batch(BATCH_SIZE)
-            _, loss_value, step = sess.run([train_op, loss, global_step], feed_dict={x: xs, y_: ys})
+            reshaped_xs = np.reshape(xs,(
+                BATCH_SIZE,
+                inference.IMAGE_SIZE,
+                inference.IMAGE_SIZE,
+                inference.NUM_CHANNELS))
+
+            _, loss_value, step = sess.run([train_op, loss, global_step], feed_dict={x: reshaped_xs, y_: ys})
             if i % 1000 == 0:
                 print("After %d training step(s), loss on training batch is %g." % (step, loss_value))
                 saver.save(sess, os.path.join(MODEL_SAVE_PATH, MODEL_NAME), global_step=global_step)

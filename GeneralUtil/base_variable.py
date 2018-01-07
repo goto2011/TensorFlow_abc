@@ -21,7 +21,15 @@ def base_variable_dump(sess):
 			print("layer_tensor[%d]=%d" % (ii, get_gived_layer(ii)))
 		'''
 
-# 初始化除隐层节点数量之外的基本的神经网络参数。
+# 初始化基本的神经网络参数
+# 1. input_node, 输入层节点数
+# 2. output_node, 输出层节点数
+# 3. batch_size, 每次batch打包的样本个数
+# 4. learning_rate_base, 基础学习learning_rate_base率
+# 5. learning_rate_decay, 学习率的衰减率
+# 6. regularization_rate, 描述模型复杂度的正则化项在损失函数中的系数
+# 7. training_steps, 训练轮数
+# 8. moving_average_decay, 滑动平均衰减率
 def init_base_variable(input_node, output_node, batch_size, learning_rate_base, learning_rate_decay, regularization_rate, training_steps, moving_average_decay):
 	with tf.variable_scope('base_variable'):
 		# 1.输入层节点数

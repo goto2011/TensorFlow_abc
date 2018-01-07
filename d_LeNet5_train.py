@@ -27,7 +27,15 @@ LOG_SAVE_PATH = "../log/"
 '''训练模型的过程'''
 def train_once(mnist):
     # 初始化 base variable
-    mnist_variable.init_base_variable(784, 10, 100, 0.8, 0.99, 0.0001, 10000, 0.99)
+    # 1. input_node, 输入层节点数
+    # 2. output_node, 输出层节点数
+    # 3. batch_size, 每次batch打包的样本个数
+    # 4. learning_rate_base, 基础学习learning_rate_base率
+    # 5. learning_rate_decay, 学习率的衰减率
+    # 6. regularization_rate, 描述模型复杂度的正则化项在损失函数中的系数
+    # 7. training_steps, 训练轮数
+    # 8. moving_average_decay, 滑动平均衰减率
+    mnist_variable.init_base_variable(784, 10, 100, 0.01, 0.99, 0.0001, 10000, 0.99)
     with tf.Session() as sess:
         tf.global_variables_initializer().run()
         input_node = mnist_variable.get_input_node().eval()

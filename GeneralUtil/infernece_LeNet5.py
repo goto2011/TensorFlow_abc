@@ -20,8 +20,10 @@ CONV2_SIZE = 5
 
 FC_SIZE = 512
 
+# 参数 train 表示当前是否在train过程中，以和测试过程分开。目的是使用 dropout 方法以防止过拟合。该方法不能用于测试过程。
 def inference(input_tensor, train, regularizer):
     with tf.variable_scope('layer1-conv1'):
+        # 权重矩阵是 5*5*1*32
         conv1_weights = tf.get_variable(
             "weight", [CONV1_SIZE, CONV1_SIZE, NUM_CHANNELS, CONV1_DEEP],
             initializer=tf.truncated_normal_initializer(stddev=0.1))

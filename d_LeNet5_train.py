@@ -16,14 +16,6 @@ import GeneralUtil.base_variable as mnist_variable
 #数据源文件夹
 INPUT_DATA_PATCH="./MNIST_data/"
 
-# 模型保存的路径和文件名
-MODEL_SAVE_PATH = "../model/"
-MODEL_NAME = "02_mnist.ckpt"
-
-# 保存log文件
-LOG_SAVE_PATH = "../log/"
-
-
 '''训练模型的过程'''
 def train_once(mnist):
     # 初始化 base variable
@@ -35,7 +27,7 @@ def train_once(mnist):
     # 6. regularization_rate, 描述模型复杂度的正则化项在损失函数中的系数
     # 7. training_steps, 训练轮数
     # 8. moving_average_decay, 滑动平均衰减率
-    mnist_variable.init_base_variable(784, 10, 100, 0.01, 0.99, 0.0001, 10000, 0.99)
+    mnist_variable.init_base_variable(784, 10, 100, 0.01, 0.99, 0.0001, 3001, 0.99)
     with tf.Session() as sess:
         tf.global_variables_initializer().run()
         input_node = mnist_variable.get_input_node().eval()
@@ -74,14 +66,11 @@ def train_once(mnist):
     # 处理学习率、优化方法等。
     train_op = mnist_learning_rate.get_train_op(global_step, mnist.train.num_examples, loss, variables_averages_op)
 
-    # 训练
+    # 开始训练过程。
     with tf.name_scope("train_step"):
-        # 初始化tf持久化类
-        saver = tf.train.Saver()
-
-        # 开始训练过程。
         with tf.Session() as sess:
-            writer = tf.summary.FileWriter(LOG_SAVE_PATH, tf.get_default_graph())
+            import GeneralUtil.persist as persist
+            saver, writer, run_metadata, run_options = persist.init("../model/02_mnist.ckpt", "../log/")
             tf.global_variables_initializer().run()
 
             # 测试数据的验证过程放在另外一个独立程序中进行
@@ -93,26 +82,19 @@ def train_once(mnist):
                     inference.IMAGE_SIZE,
                     inference.NUM_CHANNELS))  # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.
 
+                # 每1000轮做一次持久化
                 if i % 1000 == 0:
-                    # 配置运行时需要记录的信息
-                    run_options = tf.RunOptions(trace_level = tf.RunOptions.FULL_TRACE)
-                    # 运行时记录信息的proto
-                    run_metadata = tf.RunMetadata()
                     # 将配置信息和记录运行的proto信息传入运行的线程，从而记录运行时每个节点的时间、空间开销。
                     _, loss_value, step = sess.run([train_op, loss, global_step], feed_dict={x: reshaped_xs, y_: ys}
                         , options=run_options, run_metadata=run_metadata)
-                    # 记录节点的时间和空间开销
-                    writer.add_run_metadata(run_metadata, "step%03d" % i)
-                    # writer.add_summary(step, i)
-
                     print("After %d training step(s), loss on training batch is %g." % (step, loss_value))
 
-                    # 每 1000轮 把模型保存一次。
-                    saver.save(sess, os.path.join(MODEL_SAVE_PATH, MODEL_NAME), global_step=global_step)
+                    persist.do(sess, writer, i, global_step)
+                    saver.save(sess, "../model/02_mnist.ckpt", global_step=global_step)
                 else:
                     _, loss_value, step = sess.run([train_op, loss, global_step], feed_dict={x: reshaped_xs, y_: ys})
-    
-    writer.close()
+
+            persist.close(writer)
 
 def main(argv=None):
     mnist = input_data.read_data_sets(INPUT_DATA_PATCH, one_hot=True)

@@ -10,7 +10,6 @@ import random
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.platform import gfile
-import GeneralUtil.file_system as file_system
 
 # inception-v3 模型瓶颈层的节点个数
 BOTTLENECK_TENSOR_SIZE = 2048
@@ -29,7 +28,7 @@ MODEL_FILE = 'tensorflow_inception_graph.pb'
 CACHE_DIR = '/Volumes/Data/TensorFlow/tmp/bottleneck'
 
 # 图片数据的文件夹。其中每个子文件夹代表一个需要分类的类比，而且分类的名称就是文件夹名。
-INPUT_DATA = '/Volumes/Data/TensorFlow/datasets/person_photo'
+INPUT_DATA = '/Volumes/Data/TensorFlow/datasets/flower_photos'
 
 # 验证的数据百分比
 VALIDATION_PERCENTAGE = 10
@@ -38,7 +37,7 @@ TEST_PERCENTACE = 10
 
 # 定义神经网路的设置
 LEARNING_RATE = 0.01
-STEPS = 100
+STEPS = 4000
 BATCH = 100
 
 
@@ -65,43 +64,41 @@ def create_image_lists(testing_percentage, validation_percentage):
 
         # 获取当前目录下所有的有效图片文件
         extensions = ['jpg', 'jepg', 'JPG', 'JPEG']
+        file_list = []
         # 返回路径名路径的基本名称，如：daisy|dandelion|roses|sunflowers|tulips
-        dir_name = os.path.basename(sub_dir)
+        dir_name = os.path.basename(sub_dir)  
+        for extension in extensions:
+            # 一次追加一类扩展名的多个文件。最终 file_list 中保存了图片文件的全路径的列表。
+            file_glob = os.path.join(INPUT_DATA, dir_name, '*.' + extension)  # 将多个路径组合后返回
+            file_list.extend(glob.glob(file_glob))
+        if not file_list: continue
+
         # 通过目录名获取类别名称
         label_name = dir_name.lower()  # 返回其小写
+        # 初始化当前类别的训练数据集、测试数据集、验证数据集
+        training_images = []
+        testing_images = []
+        validation_images = []
 
-        # 训练数据集、验证数据集
-        if (dir_name == "caiqiuju"):
-            file_list = file_system.get_files_by_ext(os.path.join(INPUT_DATA, dir_name), extensions)
-
-            # 初始化当前类别的训练数据集、验证数据集
-            training_images = []
-            validation_images = []
-
-            # 遍历每个图片文件
-            for file_name in file_list:
-                # 此处的 base_name 就是文件名本身。
-                base_name = os.path.basename(file_name)
-                # 随机讲数据分到训练数据集、测试集和验证集
-                chance = np.random.randint(100)
-                if chance < validation_percentage:
-                    validation_images.append(base_name)
-                else:
-                    training_images.append(base_name)
-        # 验证集
-        if(dir_name == "test"):
-            file_list = file_system.get_files_by_ext(os.path.join(INPUT_DATA, dir_name), extensions)
-            testing_images = []
-            for file_name in file_list:
-                base_name = os.path.basename(file_name)
+        # 遍历每个图片文件
+        for file_name in file_list:
+            # 此处的 base_name 就是文件名本身。
+            base_name = os.path.basename(file_name)
+            # 随机讲数据分到训练数据集、测试集和验证集
+            chance = np.random.randint(100)
+            if chance < validation_percentage:
+                validation_images.append(base_name)
+            elif chance < (testing_percentage + validation_percentage):
                 testing_images.append(base_name)
+            else:
+                training_images.append(base_name)
 
-    result["caiqiuju"] = {
-        'dir': "caiqiuju",
-        'training': training_images,
-        'validation': validation_images,
-        'testing': testing_images
-    }
+        result[label_name] = {
+            'dir': dir_name,
+            'training': training_images,
+            'testing': testing_images,
+            'validation': validation_images
+        }
     return result
 
 
@@ -219,7 +216,7 @@ def get_test_bottlenecks(sess, image_lists, n_classes, jpeg_data_tensor, bottlen
             107 9922116524_ab4a2533fe_n.jpg
             '''
             bottleneck = get_or_create_bottleneck(
-                sess, image_lists, "test", index, category, jpeg_data_tensor, bottleneck_tensor)
+                sess, image_lists, label_name, index, category, jpeg_data_tensor, bottleneck_tensor)
             ground_truth = np.zeros(n_classes, dtype=np.float32)
             ground_truth[label_index] = 1.0
             bottlenecks.append(bottleneck)

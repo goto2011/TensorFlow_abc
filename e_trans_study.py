@@ -11,6 +11,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.platform import gfile
 
+import GeneralUtil.file_system as file_system
+
 # inception-v3 模型瓶颈层的节点个数
 BOTTLENECK_TENSOR_SIZE = 2048
 
@@ -28,7 +30,8 @@ MODEL_FILE = 'tensorflow_inception_graph.pb'
 CACHE_DIR = '/Volumes/Data/TensorFlow/tmp/bottleneck'
 
 # 图片数据的文件夹。其中每个子文件夹代表一个需要分类的类比，而且分类的名称就是文件夹名。
-INPUT_DATA = '/Volumes/Data/TensorFlow/datasets/flower_photos'
+INPUT_DATA = '/Volumes/Data/TensorFlow/datasets/person_photo'
+# INPUT_DATA = '/Volumes/Data/TensorFlow/datasets/flower_photos'
 
 # 验证的数据百分比
 VALIDATION_PERCENTAGE = 10
@@ -38,10 +41,11 @@ TEST_PERCENTACE = 10
 # 定义神经网路的设置
 LEARNING_RATE = 0.01
 STEPS = 4000
+# STEPS = 500
 BATCH = 100
 
 
-# 这个函数把数据集分成训练，验证，测试三部分
+# 这个函数把图片文件任意分成训练，验证，测试三部分
 # testing_percentage: 测试的数据百分比，是10%
 # validation_percentage: 验证的数据百分比，是10%
 def create_image_lists(testing_percentage, validation_percentage):
@@ -66,7 +70,7 @@ def create_image_lists(testing_percentage, validation_percentage):
         extensions = ['jpg', 'jepg', 'JPG', 'JPEG']
         file_list = []
         # 返回路径名路径的基本名称，如：daisy|dandelion|roses|sunflowers|tulips
-        dir_name = os.path.basename(sub_dir)  
+        dir_name = os.path.basename(sub_dir)
         for extension in extensions:
             # 一次追加一类扩展名的多个文件。最终 file_list 中保存了图片文件的全路径的列表。
             file_glob = os.path.join(INPUT_DATA, dir_name, '*.' + extension)  # 将多个路径组合后返回
@@ -148,23 +152,19 @@ def get_or_create_bottleneck(sess, image_lists, label_name, index, category, jpe
 
     # 获取图片特征向量的路径
     bottleneck_path = get_bottleneck_path(image_lists, label_name, index, category)
-    if not os.path.exists(bottleneck_path):  # 如果不存在
+    # 特征向量文件不存在，则新建
+    if not os.path.exists(bottleneck_path):
         # 获取图片原始路径
         image_path = get_image_path(image_lists, INPUT_DATA, label_name, index, category)
-        # 获取图片内容
+        # 读取图片内容
         image_data = gfile.FastGFile(image_path, 'rb').read()
         # 计算图片特征向量
         bottleneck_values = run_bottleneck_on_image(sess, image_data, jpeg_data_tensor, bottleneck_tensor)
         # 将特征向量存储到文件
-        bottleneck_string = ','.join(str(x) for x in bottleneck_values)
-        with open(bottleneck_path, 'w') as bottleneck_file:
-            bottleneck_file.write(bottleneck_string)
+        file_system.sava_tensor_to_file(bottleneck_path, bottleneck_values)
     else:
         # 读取保存的特征向量文件
-        with open(bottleneck_path, 'r') as bottleneck_file:
-            bottleneck_string = bottleneck_file.read()
-        # 字符串转float数组
-        bottleneck_values = [float(x) for x in bottleneck_string.split(',')]
+        bottleneck_values = file_system.read_tensor_from_file(bottleneck_path)
     return bottleneck_values
 
 
@@ -191,6 +191,7 @@ def get_random_cached_bottlenecks(sess, n_classes, image_lists, how_many, catego
         # 计算此图片的特征向量
         bottleneck = get_or_create_bottleneck(sess, image_lists, label_name, image_index, category, jpeg_data_tensor, bottleneck_tensor)
         ground_truth = np.zeros(n_classes, dtype=np.float32)
+        # 给y值赋值
         ground_truth[label_index] = 1.0
         bottlenecks.append(bottleneck)
         ground_truths.append(ground_truth)
@@ -218,6 +219,7 @@ def get_test_bottlenecks(sess, image_lists, n_classes, jpeg_data_tensor, bottlen
             bottleneck = get_or_create_bottleneck(
                 sess, image_lists, label_name, index, category, jpeg_data_tensor, bottleneck_tensor)
             ground_truth = np.zeros(n_classes, dtype=np.float32)
+            # 给y值赋值
             ground_truth[label_index] = 1.0
             bottlenecks.append(bottleneck)
             ground_truths.append(ground_truth)
@@ -225,10 +227,11 @@ def get_test_bottlenecks(sess, image_lists, n_classes, jpeg_data_tensor, bottlen
 
 
 def main(_):
-    # 读取所有图片
+    # 读取所有图片，并分数据集
     image_lists = create_image_lists(TEST_PERCENTACE, VALIDATION_PERCENTAGE)
     n_classes = len(image_lists.keys())
     print n_classes
+
     # 读取 inception-v3 模型。谷歌训练好的模型保存了 GraphDef Protocol buffer中。
     with gfile.FastGFile(os.path.join(MODEL_DIR, MODEL_FILE), 'rb') as f:
         graph_def = tf.GraphDef()
@@ -266,7 +269,7 @@ def main(_):
 
         # 训练开始
         for i in range(STEPS):
-            # 每次获取一个batch的训练数据
+            # 每次随机获取一个batch的训练数据
             train_bottlenecks, train_ground_truth = get_random_cached_bottlenecks(sess, n_classes, image_lists, BATCH, 'training', jpeg_data_tensor, bottleneck_tensor)
             # 训练
             sess.run(train_step, feed_dict={bottleneck_input: train_bottlenecks, ground_truth_input: train_ground_truth})
@@ -279,9 +282,34 @@ def main(_):
                     i, BATCH, validation_accuracy * 100))
 
         # 测试
-        test_bottlenecks, test_ground_truth = get_test_bottlenecks(sess, image_lists, n_classes, jpeg_data_tensor, bottleneck_tensor)
-        test_accuracy = sess.run(evaluation_step, feed_dict={bottleneck_input: test_bottlenecks, ground_truth_input: test_ground_truth})
-        print('Final test accuracy = %.1f%%' % (test_accuracy * 100))
+        print("训练完成！")
+        print("开始测试:")
+
+        label_name_list = list(image_lists.keys())  # ['dandelion', 'daisy', 'sunflowers', 'roses', 'tulips']
+        for label_index, label_name in enumerate(label_name_list):  # 枚举每个类别,如:0 sunflowers
+            category = 'testing'
+            for index, unused_base_name in enumerate(image_lists[label_name][category]):  # 枚举此类别中的测试数据集中的每张图片
+
+                bottlenecks = []
+                ground_truths = []
+
+                bottleneck = get_or_create_bottleneck(
+                    sess, image_lists, label_name, index, category, jpeg_data_tensor, bottleneck_tensor)
+                ground_truth = np.zeros(n_classes, dtype=np.float32)
+                # 给y值赋值
+                ground_truth[label_index] = 1.0
+                bottlenecks.append(bottleneck)
+                ground_truths.append(ground_truth)
+
+                test_accuracy = sess.run(evaluation_step, feed_dict={bottleneck_input: bottlenecks, ground_truth_input: ground_truths})
+                
+                # print(tf.argmax(final_tensor, 1))
+                print(label_name, unused_base_name)
+
+                if (test_accuracy < 0.01):
+                    print('This image is not %s' % (label_name))
+                else:
+                    print('This image is %s' % (label_name))
 
 
 if __name__ == '__main__':

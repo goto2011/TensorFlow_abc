@@ -50,6 +50,3 @@ def close(writer):
 
 
 
-
-
-

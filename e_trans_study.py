@@ -118,7 +118,7 @@ def get_image_path(image_lists, image_dir, label_name, index, category):
     label_lists = image_lists[label_name]
     # 获取这种类别的图片中，特定的数据集(base_name的一维数组)
     category_list = label_lists[category]
-    mod_index = index % len(category_list)  # 图片的编号%此数据集中图片数量
+    mod_index = index % len(category_list)  # 图片的编号 % 此数据集中图片数量
     # 获取图片文件名
     base_name = category_list[mod_index]
     sub_dir = label_lists['dir']
@@ -161,7 +161,7 @@ def get_or_create_bottleneck(sess, image_lists, label_name, index, category, jpe
         # 计算图片特征向量
         bottleneck_values = run_bottleneck_on_image(sess, image_data, jpeg_data_tensor, bottleneck_tensor)
         # 将特征向量存储到文件
-        file_system.sava_tensor_to_file(bottleneck_path, bottleneck_values)
+        file_system.save_tensor_to_file(bottleneck_path, bottleneck_values)
     else:
         # 读取保存的特征向量文件
         bottleneck_values = file_system.read_tensor_from_file(bottleneck_path)
@@ -287,29 +287,31 @@ def main(_):
 
         label_name_list = list(image_lists.keys())  # ['dandelion', 'daisy', 'sunflowers', 'roses', 'tulips']
         for label_index, label_name in enumerate(label_name_list):  # 枚举每个类别,如:0 sunflowers
-            category = 'testing'
-            for index, unused_base_name in enumerate(image_lists[label_name][category]):  # 枚举此类别中的测试数据集中的每张图片
+            for index, unused_base_name in enumerate(image_lists[label_name]['testing']):  # 枚举此类别中的测试数据集中的每张图片
 
                 bottlenecks = []
                 ground_truths = []
 
                 bottleneck = get_or_create_bottleneck(
-                    sess, image_lists, label_name, index, category, jpeg_data_tensor, bottleneck_tensor)
+                    sess, image_lists, label_name, index, 'testing', jpeg_data_tensor, bottleneck_tensor)
                 ground_truth = np.zeros(n_classes, dtype=np.float32)
                 # 给y值赋值
                 ground_truth[label_index] = 1.0
                 bottlenecks.append(bottleneck)
                 ground_truths.append(ground_truth)
 
-                test_accuracy = sess.run(evaluation_step, feed_dict={bottleneck_input: bottlenecks, ground_truth_input: ground_truths})
-                
-                # print(tf.argmax(final_tensor, 1))
-                print(label_name, unused_base_name)
+                predict_tensor, test_accuracy = sess.run([final_tensor, evaluation_step], feed_dict={bottleneck_input: bottlenecks, ground_truth_input: ground_truths})
+
+                predict_index = predict_tensor.argmax()
+                predict_name = list(image_lists.keys())[predict_index]
+                print("---------------------------------")
+                print(index, label_name, unused_base_name)
+                print(predict_tensor)
 
                 if (test_accuracy < 0.01):
-                    print('This image is not %s' % (label_name))
+                    print('This image verify as \"%s\", but is \"%s\"' % (predict_name, label_name))
                 else:
-                    print('This image is %s' % (label_name))
+                    print('This image verify as \"%s\", is OK!' % (predict_name))
 
 
 if __name__ == '__main__':

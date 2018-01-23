@@ -214,7 +214,7 @@ def main(_):
     # 读取所有图片
     image_lists = create_image_lists(TEST_PERCENTACE, VALIDATION_PERCENTAGE)
     n_classes = len(image_lists.keys())
-    print n_classes
+    print(n_classes)
     # 读取 inception-v3 模型。谷歌训练好的模型保存了 GraphDef Protocol buffer中。
     with gfile.FastGFile(os.path.join(MODEL_DIR, MODEL_FILE), 'rb') as f:
         graph_def = tf.GraphDef()

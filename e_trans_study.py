@@ -12,6 +12,7 @@ import tensorflow as tf
 from tensorflow.python.platform import gfile
 
 import GeneralUtil.file_system as file_system
+import GeneralUtil.data_set as data_set
 
 # inception-v3 模型瓶颈层的节点个数
 BOTTLENECK_TENSOR_SIZE = 2048
@@ -40,8 +41,8 @@ TEST_PERCENTACE = 10
 
 # 定义神经网路的设置
 LEARNING_RATE = 0.01
-STEPS = 4000
-# STEPS = 500
+# STEPS = 4000
+STEPS = 500
 BATCH = 100
 
 
@@ -53,51 +54,20 @@ def create_image_lists(testing_percentage, validation_percentage):
     result = {}
 
     # 获取目录下所有子目录
-    sub_dirs = [x[0] for x in os.walk(INPUT_DATA)]
-    # ['/path/to/flower_data', '/path/to/flower_data\\daisy', '/path/to/flower_data\\dandelion',
-    # '/path/to/flower_data\\roses', '/path/to/flower_data\\sunflowers', '/path/to/flower_data\\tulips']
-
-    # 数组中的第一个目录是当前目录，这里设置标记，不予处理
-    is_root_dir = True
+    sub_dirs = file_system.get_dirs_list(INPUT_DATA)
 
     # 遍历目录数组，每次处理一种
     for sub_dir in sub_dirs:
-        if is_root_dir:
-            is_root_dir = False
-            continue
+        dir_name = os.path.basename(sub_dir)
 
         # 获取当前目录下所有的有效图片文件
         extensions = ['jpg', 'jepg', 'JPG', 'JPEG']
-        file_list = []
-        # 返回路径名路径的基本名称，如：daisy|dandelion|roses|sunflowers|tulips
-        dir_name = os.path.basename(sub_dir)
-        for extension in extensions:
-            # 一次追加一类扩展名的多个文件。最终 file_list 中保存了图片文件的全路径的列表。
-            file_glob = os.path.join(INPUT_DATA, dir_name, '*.' + extension)  # 将多个路径组合后返回
-            file_list.extend(glob.glob(file_glob))
-        if not file_list: continue
+        file_list = file_system.get_files_by_ext(os.path.join(INPUT_DATA, dir_name), extensions)
+        
+        training_images, testing_images, validation_images = data_set.random_alloc_train_set(file_list, 
+            testing_percentage, validation_percentage)
 
-        # 通过目录名获取类别名称
-        label_name = dir_name.lower()  # 返回其小写
-        # 初始化当前类别的训练数据集、测试数据集、验证数据集
-        training_images = []
-        testing_images = []
-        validation_images = []
-
-        # 遍历每个图片文件
-        for file_name in file_list:
-            # 此处的 base_name 就是文件名本身。
-            base_name = os.path.basename(file_name)
-            # 随机讲数据分到训练数据集、测试集和验证集
-            chance = np.random.randint(100)
-            if chance < validation_percentage:
-                validation_images.append(base_name)
-            elif chance < (testing_percentage + validation_percentage):
-                testing_images.append(base_name)
-            else:
-                training_images.append(base_name)
-
-        result[label_name] = {
+        result[dir_name] = {
             'dir': dir_name,
             'training': training_images,
             'testing': testing_images,
@@ -181,11 +151,12 @@ def get_random_cached_bottlenecks(sess, n_classes, image_lists, how_many, catego
                                   bottleneck_tensor):
     bottlenecks = []
     ground_truths = []
+    label_lists = sorted(list(image_lists.keys()))
     for _ in range(how_many):
         # 随机一个类别和图片编号加入当前的训练数据
         label_index = random.randrange(n_classes)
         # 随机图片的类别名
-        label_name = list(image_lists.keys())[label_index]
+        label_name = label_lists[label_index]
         # 随机图片的编号
         image_index = random.randrange(65536)
         # 计算此图片的特征向量
@@ -202,7 +173,7 @@ def get_random_cached_bottlenecks(sess, n_classes, image_lists, how_many, catego
 def get_test_bottlenecks(sess, image_lists, n_classes, jpeg_data_tensor, bottleneck_tensor):
     bottlenecks = []
     ground_truths = []
-    label_name_list = list(image_lists.keys())  # ['dandelion', 'daisy', 'sunflowers', 'roses', 'tulips']
+    label_name_list = sorted(list(image_lists.keys()))  # ['dandelion', 'daisy', 'sunflowers', 'roses', 'tulips']
     for label_index, label_name in enumerate(label_name_list):  # 枚举每个类别,如:0 sunflowers
         category = 'testing'
         for index, unused_base_name in enumerate(image_lists[label_name][category]):  # 枚举此类别中的测试数据集中的每张图片
@@ -230,7 +201,7 @@ def main(_):
     # 读取所有图片，并分数据集
     image_lists = create_image_lists(TEST_PERCENTACE, VALIDATION_PERCENTAGE)
     n_classes = len(image_lists.keys())
-    print n_classes
+    print(n_classes)
 
     # 读取 inception-v3 模型。谷歌训练好的模型保存了 GraphDef Protocol buffer中。
     with gfile.FastGFile(os.path.join(MODEL_DIR, MODEL_FILE), 'rb') as f:
@@ -285,7 +256,8 @@ def main(_):
         print("训练完成！")
         print("开始测试:")
 
-        label_name_list = list(image_lists.keys())  # ['dandelion', 'daisy', 'sunflowers', 'roses', 'tulips']
+        label_name_list = sorted(list(image_lists.keys()))  # ['dandelion', 'daisy', 'sunflowers', 'roses', 'tulips']
+        print(label_name_list)
         for label_index, label_name in enumerate(label_name_list):  # 枚举每个类别,如:0 sunflowers
             for index, unused_base_name in enumerate(image_lists[label_name]['testing']):  # 枚举此类别中的测试数据集中的每张图片
 
@@ -303,7 +275,7 @@ def main(_):
                 predict_tensor, test_accuracy = sess.run([final_tensor, evaluation_step], feed_dict={bottleneck_input: bottlenecks, ground_truth_input: ground_truths})
 
                 predict_index = predict_tensor.argmax()
-                predict_name = list(image_lists.keys())[predict_index]
+                predict_name = label_name_list[predict_index]
                 print("---------------------------------")
                 print(index, label_name, unused_base_name)
                 print(predict_tensor)

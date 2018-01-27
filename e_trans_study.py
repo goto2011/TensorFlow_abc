@@ -13,6 +13,9 @@ from tensorflow.python.platform import gfile
 
 import GeneralUtil.file_system as file_system
 import GeneralUtil.data_set as data_set
+import GeneralUtil.accuracy as accuracy
+import GeneralUtil.loss as loss
+
 
 # inception-v3 模型瓶颈层的节点个数
 BOTTLENECK_TENSOR_SIZE = 2048
@@ -223,15 +226,15 @@ def main(_):
         final_tensor = tf.nn.softmax(logits)
 
     # 定义损失函数
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=ground_truth_input)
-    cross_entropy_mean = tf.reduce_mean(cross_entropy)
+    # cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=real, logits=forecast)
+    # cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=ground_truth_input)
+    # cross_entropy_mean = tf.reduce_mean(cross_entropy)
+    cross_entropy_mean = loss.get_total_loss(logits, ground_truth_input, 1)
     # 优化
     train_step = tf.train.GradientDescentOptimizer(LEARNING_RATE).minimize(cross_entropy_mean)
 
     # 计算正确率
-    with tf.name_scope('evaluation'):
-        correct_prediction = tf.equal(tf.argmax(final_tensor, 1), tf.argmax(ground_truth_input, 1))
-        evaluation_step = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    evaluation_step = accuracy.compute_accuracy(final_tensor, ground_truth_input)
 
     with tf.Session() as sess:
         # 初始化参数
@@ -284,6 +287,11 @@ def main(_):
                     print('This image verify as \"%s\", but is \"%s\"' % (predict_name, label_name))
                 else:
                     print('This image verify as \"%s\", is OK!' % (predict_name))
+
+        # 累计测试正确率。
+        test_bottlenecks, test_ground_truth = get_test_bottlenecks(sess, image_lists, n_classes, jpeg_data_tensor, bottleneck_tensor)
+        test_accuracy = sess.run(evaluation_step, feed_dict={bottleneck_input: test_bottlenecks, ground_truth_input: test_ground_truth})
+        print('总体测试准确率是 %.1f%%' % (test_accuracy * 100))
 
 
 if __name__ == '__main__':

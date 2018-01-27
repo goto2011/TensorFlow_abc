@@ -1,5 +1,5 @@
 #coding=utf-8
-# 输入数据处理。
+# 数据集处理。
 __author__ = 'duangan'
 
 

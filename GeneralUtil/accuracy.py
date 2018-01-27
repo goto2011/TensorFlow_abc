@@ -24,8 +24,7 @@ def evaluate(mnist, model_path, time_interval, input_node, output_node, moving_a
 		y = inference.inference(x, None, input_node, output_node)
 
 		# 计算正确率
-		correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-		accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+		accuracy = compute_accuracy(y, y_)
 
 		#给定滑动平均衰减率和训练轮数的变量，初始化滑动平均类
 		variable_averages = tf.train.ExponentialMovingAverage(moving_average_decay)
@@ -47,3 +46,15 @@ def evaluate(mnist, model_path, time_interval, input_node, output_node, moving_a
 					print ('No checkpoint file found')
 					return
 				time.sleep(time_interval)
+
+
+# 计算正确率
+def compute_accuracy(predict_result, truth_result):
+	with tf.name_scope('accuracy'):
+		correct_prediction = tf.equal(tf.argmax(predict_result, 1), tf.argmax(truth_result, 1))
+		return tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+
+
+
+

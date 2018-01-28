@@ -4,23 +4,6 @@ __author__ = 'duangan'
 import tensorflow as tf
 
 
-def base_variable_dump(sess):
-	with sess.as_default():
-		print("input_node=%d" % (get_input_node().eval()))
-		print("output_node=%d" % (get_output_node().eval()))
-		print("batch_size=%d" % (get_batch_size().eval()))
-		print("learning_rate_base=%f" % (get_learning_rate_base().eval()))
-		print("learning_rate_decay=%f" % (get_learning_rate_decay().eval()))
-		print("regularization_rate=%f" % (get_regularization_rate().eval()))
-		print("training_steps=%d" % (get_training_steps().eval()))
-		print("moving_average_decay=%f" % (get_moving_average_decay().eval()))
-
-		'''
-		print("layer_count=%d" % (get_layer_count()))
-		for ii in range(get_layer_count()):
-			print("layer_tensor[%d]=%d" % (ii, get_gived_layer(ii)))
-		'''
-
 # 初始化基本的神经网络参数
 # 1. input_node, 输入层节点数
 # 2. output_node, 输出层节点数
@@ -50,26 +33,18 @@ def init_base_variable(input_node, output_node, batch_size, learning_rate_base, 
 		tf.get_variable("moving_average_decay", [1], initializer=tf.constant_initializer(moving_average_decay), dtype=tf.float32, trainable=False)
 
 
-''' 初始化隐层节点数量
-	layer_count: 隐层的数量
-	layer_tensor: 各层的节点数量
-'''
-def int_layers_variable(layer_count, layer_tensor):
-	with tf.variable_scope('base_variable'):
-		layer_count = tf.get_variable("layer_count", [1], initializer=tf.constant_initializer(layer_count))
-		layer_tensor = tf.get_variable("layer_tensor", [layer_count], initializer=tf.constant_initializer(layer_tensor))
 
-		# 检查入参的正确性
-		if (layer_count < 1) :
-			tf.assign(layer_count, 0);
-		if (layer_count != tf.size(layer_tensor)):
-			tf.assign(layer_count, 0);
-
-# 初始化功能性参数
-def init_func_variable(input_data_path):
-	with tf.variable_scope('base_variable'):
-		input_data_path = tf.get_variable("input_data_path", [1], initializer=tf.constant_initializer(input_data_path))
-
+# 打印 base variable
+def base_variable_dump(sess):
+	with sess.as_default():
+		print("input_node=%d" % (get_input_node().eval()))
+		print("output_node=%d" % (get_output_node().eval()))
+		print("batch_size=%d" % (get_batch_size().eval()))
+		print("learning_rate_base=%f" % (get_learning_rate_base().eval()))
+		print("learning_rate_decay=%f" % (get_learning_rate_decay().eval()))
+		print("regularization_rate=%f" % (get_regularization_rate().eval()))
+		print("training_steps=%d" % (get_training_steps().eval()))
+		print("moving_average_decay=%f" % (get_moving_average_decay().eval()))
 
 
 # 1.输入层节点数
@@ -112,17 +87,95 @@ def get_moving_average_decay():
 	with tf.variable_scope('base_variable', reuse=True):
 		return tf.get_variable("moving_average_decay", [1])[0]
 
-# 9.隐层的数量
+
+###############################################################################
+
+
+# 初始化输入数据属性。针对图像数据。
+# input_width: 宽
+# input_height: 高
+# input_depth: 深度
+def init_input_variable(input_width, input_height, input_depth):
+	with tf.variable_scope('base_variable'):
+		# 1.宽
+		tf.get_variable("input_width", [1], initializer=tf.constant_initializer(input_width), dtype=tf.int32, trainable=False)
+		# 2.高
+		tf.get_variable("input_height", [1], initializer=tf.constant_initializer(input_height), dtype=tf.int32, trainable=False)
+		# 3.深度
+		tf.get_variable("input_depth", [1], initializer=tf.constant_initializer(input_depth), dtype=tf.int32, trainable=False)
+
+# 打印 input variable
+def input_variable_dump(sess):
+	with sess.as_default():
+		print("input_width=%d" % (get_input_width().eval()))
+		print("input_height=%d" % (get_input_height().eval()))
+		print("input_depth=%d" % (get_input_depth().eval()))
+
+
+# 1.输入数据之宽
+def get_input_width():
+	with tf.variable_scope('base_variable', reuse=True):
+		return tf.get_variable("input_width", [1], dtype=tf.int32)[0]
+
+# 2.输入数据之高
+def get_input_height():
+	with tf.variable_scope('base_variable', reuse=True):
+		return tf.get_variable("input_height", [1], dtype=tf.int32)[0]
+
+# 3.输入数据之深度
+def get_input_depth():
+	with tf.variable_scope('base_variable', reuse=True):
+		return tf.get_variable("input_depth", [1], dtype=tf.int32)[0]
+
+
+
+###############################################################################
+
+
+''' 初始化隐层节点属性
+	layer_count: 隐层的数量
+	layer_tensor: 各层的属性。其格式如下：
+		type: 有4类：
+			"conv": 卷积层； 
+			"max-pool": 最大池化层; 
+			"average-pool": 平均池化层； 
+			"fc": 全连通
+		variable:
+			卷积层是[kernel_length, kernel_depth]
+			池化层是[kernel_length]
+			全连通层是[output_length]
+		other_variable:
+			卷积层是["SAME"/"VALID", step]，默认值是["SAME", 1]
+			池化层是["SAME"/"VALID", step]，默认值是["SAME", 1]
+'''
+def init_layer_variable(layer_count, layer_tensor):
+	with tf.variable_scope('base_variable'):
+		layer_count = tf.get_variable("layer_count", [1], initializer=tf.constant_initializer(layer_count))
+		layer_tensor = tf.get_variable("layer_tensor", [layer_count], initializer=tf.constant_initializer(layer_tensor))
+
+		# 检查入参的正确性
+		if (layer_count < 1) :
+			tf.assign(layer_count, 0);
+		if (layer_count != tf.size(layer_tensor)):
+			tf.assign(layer_count, 0);
+
+# 打印
+def layer_variable_dump(sess):
+	print("layer_count=%d" % (get_layer_count()))
+	for ii in range(get_layer_count()):
+		print("layer_tensor[%d]=%d" % (ii, get_gived_layer(ii)))
+
+# 1.隐层的数量
 def get_layer_count():
 	with tf.variable_scope('base_variable', reuse=True):
 		return tf.get_variable("layer_count", [1], dtype=tf.int32)[0]
 
-# 10.各层的节点数量
+# 2.各层的节点数量
 def get_layer_tensor():
 	with tf.variable_scope('base_variable', reuse=True):
 		return tf.get_variable("layer_tensor", [get_layer_count()])
 
-# 11.指定层的节点数
+# 3.指定层的节点数
 def get_gived_layer(layindex):
 	with tf.variable_scope('base_variable', reuse=True):
 		return tf.get_variable("layer_tensor", [get_layer_count()], dtype=tf.int32)[layindex]

@@ -131,9 +131,10 @@ def get_input_depth():
 
 ###############################################################################
 
+# 定义全局变量，以保存隐层属性
+g_layer_tensor = []
 
-''' 初始化隐层节点属性
-	layer_count: 隐层的数量
+''' 初始化隐层属性
 	layer_tensor: 各层的属性。其格式如下：
 		type: 有4类：
 			"conv": 卷积层； 
@@ -154,33 +155,45 @@ def get_input_depth():
 				dropout_rate: dropout 系数，为一(0, 1.0) 之间的浮点数。默认值为0。
 '''
 def init_layer_variable(layer_tensor):
+	global g_layer_tensor
 	with tf.variable_scope('base_variable'):
 		layer_count = tf.get_variable("layer_count", [1], initializer=tf.constant_initializer(len(layer_tensor)))
-		layer_tensor = tf.get_variable("layer_tensor", [layer_count], 
-			initializer=tf.constant_initializer(layer_tensor))
-
-		# 检查入参的正确性
-		if (layer_count < 1) :
-			tf.assign(layer_count, 0);
+		# layer_tensor = tf.get_variable("layer_tensor", [layer_count], initializer=tf.constant_initializer(layer_tensor))
+		g_layer_tensor = layer_tensor
 
 # 打印
 def layer_variable_dump(sess):
+	global g_layer_tensor
 	print("layer_count=%d" % (get_layer_count()))
 	for ii in range(get_layer_count()):
-		print("layer_tensor[%d]=%d" % (ii, get_gived_layer(ii)))
+		print("layer_tensor[%d]" % ii, g_layer_tensor[ii])
 
 # 1.隐层的数量
 def get_layer_count():
+	global g_layer_tensor
 	with tf.variable_scope('base_variable', reuse=True):
-		return tf.get_variable("layer_count", [1], dtype=tf.int32)[0]
+		return len(g_layer_tensor)
 
-# 2.各层的节点属性
-def get_layer_tensor():
+# 2.指定层的节点数
+def get_gived_layer(layer_index):
+	global g_layer_tensor
 	with tf.variable_scope('base_variable', reuse=True):
-		return tf.get_variable("layer_tensor", [get_layer_count()])
+		return g_layer_tensor[layer_index]
 
-# 3.指定层的节点数
-def get_gived_layer(layindex):
-	with tf.variable_scope('base_variable', reuse=True):
-		return tf.get_variable("layer_tensor", [get_layer_count()], dtype=tf.int32)[layindex]
+###############################################################################
+# 全局打印开关
+
+g_debug_flag = False
+
+def init_debug_flag(debug_flag):
+	global g_debug_flag
+	g_debug_flag = debug_flag
+
+def get_debug_flag():
+	global g_debug_flag
+	return g_debug_flag
+
+
+
+
 

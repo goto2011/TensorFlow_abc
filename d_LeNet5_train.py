@@ -50,10 +50,10 @@ def train_once(mnist):
     with tf.name_scope('input'):
         # 维度可以自动算出，也就是样本数
         x = tf.placeholder(tf.float32, [
-            batch_size,         # 第一维度表示一个batch中样例的个数。
-            input_width,  # 第二维和第三维表示图片的尺寸
+            batch_size,     # 第一维度表示一个batch中样例的个数。
+            input_width,    # 第二维和第三维表示图片的尺寸
             input_height,
-            input_depth],  # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.
+            input_depth],   # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.
             name='x-input')
         y_ = tf.placeholder(tf.float32, [None, output_node], name='y-input')
 
@@ -62,6 +62,7 @@ def train_once(mnist):
 
     # 初始化 layer variable
     variable.init_layer_variable([
+        ["input", [input_width, input_height, input_depth]],
         ["conv", [5, 32]], 
         ["max-pool", 2, ["SAME", 2]],
         ["conv", [5, 64]], 
@@ -74,12 +75,12 @@ def train_once(mnist):
         variable.layer_variable_dump(sess)
 
     # 计算前向传播结果
-    l1_output = inference.inference_ext(x, False, regularizer, 0)
-    l2_output = inference.inference_ext(l1_output, False, regularizer, 1)
-    l3_output = inference.inference_ext(l2_output, False, regularizer, 2)
-    l4_output = inference.inference_ext(l3_output, False, regularizer, 3)
-    l5_output = inference.inference_ext(l4_output, False, regularizer, 4)
-    y = inference.inference_ext(l5_output, False, regularizer, 5)
+    l1_output = inference.inference_ext(x, False, regularizer, 1)
+    l2_output = inference.inference_ext(l1_output, False, regularizer, 2)
+    l3_output = inference.inference_ext(l2_output, False, regularizer, 3)
+    l4_output = inference.inference_ext(l3_output, False, regularizer, 4)
+    l5_output = inference.inference_ext(l4_output, False, regularizer, 5)
+    y = inference.inference_ext(l5_output, False, regularizer, 6)
 
     # 定义训练轮数及相关的滑动平均类
     global_step = tf.Variable(0, trainable=False)   # 将训练轮数的变量指定为不参与训练的参数

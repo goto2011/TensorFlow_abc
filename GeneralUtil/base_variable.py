@@ -139,7 +139,7 @@ def get_input_depth():
 			"conv": 卷积层； 
 			"max-pool": 最大池化层; 
 			"average-pool": 平均池化层； 
-			"fc": 全连通
+			"fc": 全连通层
 		variable:
 			卷积层是[kernel_length, kernel_depth]
 			池化层是[kernel_length]
@@ -147,16 +147,20 @@ def get_input_depth():
 		other_variable:
 			卷积层是["SAME"/"VALID", step]，默认值是["SAME", 1]
 			池化层是["SAME"/"VALID", step]，默认值是["SAME", 1]
+			全连通层是[activity_index, enable_dropout, dropout_rate]
+				activity_index：表示使用何种激活函数。默认值0，表示不使用；
+					1 表示 Relu；2 表示 Sigmoid；3 表示 tanh； 4 表示 softplus；5 表示 relu6。
+				enable_dropout：表示是否使能 dropout，0不使能，1使能。默认值为0。
+				dropout_rate: dropout 系数，为一(0, 1.0) 之间的浮点数。默认值为0。
 '''
-def init_layer_variable(layer_count, layer_tensor):
+def init_layer_variable(layer_tensor):
 	with tf.variable_scope('base_variable'):
-		layer_count = tf.get_variable("layer_count", [1], initializer=tf.constant_initializer(layer_count))
-		layer_tensor = tf.get_variable("layer_tensor", [layer_count], initializer=tf.constant_initializer(layer_tensor))
+		layer_count = tf.get_variable("layer_count", [1], initializer=tf.constant_initializer(len(layer_tensor)))
+		layer_tensor = tf.get_variable("layer_tensor", [layer_count], 
+			initializer=tf.constant_initializer(layer_tensor))
 
 		# 检查入参的正确性
 		if (layer_count < 1) :
-			tf.assign(layer_count, 0);
-		if (layer_count != tf.size(layer_tensor)):
 			tf.assign(layer_count, 0);
 
 # 打印
@@ -170,7 +174,7 @@ def get_layer_count():
 	with tf.variable_scope('base_variable', reuse=True):
 		return tf.get_variable("layer_count", [1], dtype=tf.int32)[0]
 
-# 2.各层的节点数量
+# 2.各层的节点属性
 def get_layer_tensor():
 	with tf.variable_scope('base_variable', reuse=True):
 		return tf.get_variable("layer_tensor", [get_layer_count()])

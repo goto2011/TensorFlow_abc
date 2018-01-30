@@ -93,7 +93,7 @@ def inference_ext(input_data, train, regularizer, layer_index):
             # 拉直。pool_shape[0]是一个 batch 中数据的个数。
             input_data = tf.reshape(input_data, [pool_shape[0], nodes])
         else:
-            # 因为所有的全连通层都在一起，不是第一个时，直接取上一个。上一个应该是全连通层。
+            # 如果不是第一个时，就直接取上一个。因为所有的全连通层都在一起，上一个也是全连通层。
             nodes = variable.get_gived_layer(layer_index - 1)[1]
 
         current_nodes = layer_variable[1]
@@ -103,6 +103,30 @@ def inference_ext(input_data, train, regularizer, layer_index):
         # 只有全连通层需要加入正则化
         if regularizer != None: tf.add_to_collection('losses', regularizer(fc_weights))
         fc_biases = tf.get_variable("bias", [current_nodes], initializer=tf.constant_initializer(0.1))
+        logit = tf.matmul(input_data, fc_weights) + fc_biases
+
+        if (len(layer_variable) == 3):
+            activity_index = layer_variable[2][0]
+            enable_dropout = layer_variable[2][1]
+            dropout_rate = layer_variable[2][2]
+
+            # 如果不是最后一个全连接层，则需要激活函数
+            if (activity_index == 1):
+                logit = tf.nn.relu(logit)
+            elif (activity_index == 2):
+                logit = tf.sigmoid(logit)
+            elif (activity_index == 3):
+                logit = tf.tanh(logit)
+            elif (activity_index == 4):
+                logit = tf.nn.softplus(logit)
+            elif (activity_index == 5):
+                logit = tf.nn.relu6(logit)
+
+            if (train):
+                if (enable_dropout == 1):
+                    logit = tf.nn.dropout(logit, dropout_rate)
+
+        return logit
 
 
 

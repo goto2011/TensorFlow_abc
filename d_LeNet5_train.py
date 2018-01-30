@@ -46,18 +46,6 @@ def train_once(mnist):
         batch_size = variable.get_batch_size().eval()
         variable.base_variable_dump(sess)
 
-    # 初始化 layer variable
-    variable.init_layer_variable(6, [
-        ["conv", [5, 32]], 
-        ["max-pool", 2, ["SAME", 2]],
-        ["conv", [5, 64]], 
-        ["max-pool", 2, ["SAME", 2]],
-        ["fc", 512],
-        ["fc", 10],
-        ])
-    with tf.Session() as sess:
-        variable.layer_variable_dump(sess)
-
     # 输入数据
     with tf.name_scope('input'):
         # 维度可以自动算出，也就是样本数
@@ -72,11 +60,26 @@ def train_once(mnist):
     # 正则化损失函数
     regularizer = tf.contrib.layers.l2_regularizer(variable.get_regularization_rate())
 
+    # 初始化 layer variable
+    variable.init_layer_variable([
+        ["conv", [5, 32]], 
+        ["max-pool", 2, ["SAME", 2]],
+        ["conv", [5, 64]], 
+        ["max-pool", 2, ["SAME", 2]],
+        ["fc", 512, [1, 1, 0.5]],
+        ["fc", 10]
+        ])
+    with tf.Session() as sess:
+        tf.global_variables_initializer().run()
+        variable.layer_variable_dump(sess)
+
     # 计算前向传播结果
-    layer_number = variable.get_layer_count()
-    for ii in range(layer_number):
-        
-    y = inference.inference_ext(x, False, regularizer)
+    l1_output = inference.inference_ext(x, False, regularizer, 0)
+    l2_output = inference.inference_ext(l1_output, False, regularizer, 1)
+    l3_output = inference.inference_ext(l2_output, False, regularizer, 2)
+    l4_output = inference.inference_ext(l3_output, False, regularizer, 3)
+    l5_output = inference.inference_ext(l4_output, False, regularizer, 4)
+    y = inference.inference_ext(l5_output, False, regularizer, 5)
 
     # 定义训练轮数及相关的滑动平均类
     global_step = tf.Variable(0, trainable=False)   # 将训练轮数的变量指定为不参与训练的参数

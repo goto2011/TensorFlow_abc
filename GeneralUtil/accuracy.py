@@ -54,7 +54,9 @@ def compute_accuracy(predict_result, truth_result):
 		correct_prediction = tf.equal(tf.argmax(predict_result, 1), tf.argmax(truth_result, 1))
 		return tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-
+# 打印正确率
+def print_accuracy(accuracy):
+	print('This acc = %.1f%%' % (accuracy * 100))
 
 
 

@@ -9,7 +9,7 @@ import GeneralUtil.base_variable as variable
 
 
 # 模块级打印
-DEBUG_FLAG = variable.get_debug_flag() or True
+DEBUG_FLAG = variable.get_debug_flag() or False
 DEBUG_MODULE = "infernece_LeNet5"
 # 打印例子：
 # if (DEBUG_FLAG): print(DEBUG_MODULE, ii, layer_variable)
@@ -75,7 +75,7 @@ def is_first_fc_layer(layer_index):
 def inference_ext(input_data, train, regularizer, layer_index):
     with tf.variable_scope('layer' + bytes(layer_index)):
         layer_variable = variable.get_gived_layer(layer_index)
-        if (DEBUG_FLAG): print(DEBUG_MODULE, "***", layer_index, layer_variable)
+        print(DEBUG_MODULE, "***", layer_index, layer_variable)
 
         if (layer_variable[0] == "conv"):
             kernel_length = layer_variable[1][0]

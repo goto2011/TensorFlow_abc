@@ -31,17 +31,17 @@ def do(sess, writer, current_step, global_step):
 	global saver
 	global run_metadata
 	with tf.variable_scope('persist', reuse=True):
-	    # 记录节点的时间和空间开销
-	    writer.add_run_metadata(run_metadata, "step%03d" % current_step)
-	    # writer.add_summary(step, i)
-	    
-	    model_path = tf.get_variable("model_path", [1], dtype=tf.string)[0]
-	    # model_file = tf.get_variable("model_file", [1], dtype=tf.string)[0]
-	    with sess.as_default():
-	    	print("model_path=%s" % model_path.eval())
-	    	# print("model_file=%s" % model_file.eval())
-	    # saver.save(sess, os.path.join(model_path, model_file), global_step=global_step)
-	    # saver.save(sess, model_path, global_step=global_step)
+		# 记录节点的时间和空间开销
+		writer.add_run_metadata(run_metadata, "step%03d" % current_step)
+		# writer.add_summary(step, i)
+
+		model_path = tf.get_variable("model_path", [1], dtype=tf.string)[0]
+		# model_file = tf.get_variable("model_file", [1], dtype=tf.string)[0]
+		# with sess.as_default():
+			# print("model_path=%s" % model_path.eval())
+			# print("model_file=%s" % model_file.eval())
+		# saver.save(sess, os.path.join(model_path, model_file), global_step=global_step)
+		# saver.save(sess, model_path, global_step=global_step)
 
 def close(writer):
 	with tf.variable_scope('persist', reuse=True):

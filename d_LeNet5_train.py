@@ -11,7 +11,13 @@ import GeneralUtil.average as average
 import GeneralUtil.loss as loss
 import GeneralUtil.learning_rate as learning_rate
 import GeneralUtil.base_variable as variable
+import GeneralUtil.accuracy as accuracy
 
+# 模块级打印
+DEBUG_FLAG = variable.get_debug_flag() or True
+DEBUG_MODULE = "d_LeNet5_train"
+# 打印例子：
+# if (DEBUG_FLAG): print(DEBUG_MODULE, ii, layer_variable)
 
 #数据源文件夹
 INPUT_DATA_PATCH="./MNIST_data/"
@@ -26,7 +32,7 @@ def train_once(mnist):
         input_width = variable.get_input_width().eval()
         input_height = variable.get_input_height().eval()
         input_depth = variable.get_input_depth().eval()
-        variable.input_variable_dump(sess)
+        if (DEBUG_FLAG): variable.input_variable_dump(sess)
 
     # 初始化 base variable
     # 1. input_node, 输入层节点数
@@ -44,7 +50,7 @@ def train_once(mnist):
         output_node = variable.get_output_node().eval()
         training_steps = variable.get_training_steps().eval()
         batch_size = variable.get_batch_size().eval()
-        variable.base_variable_dump(sess)
+        if (DEBUG_FLAG): variable.base_variable_dump(sess)
 
     # 输入数据
     with tf.name_scope('input'):
@@ -72,7 +78,7 @@ def train_once(mnist):
         ])
     with tf.Session() as sess:
         tf.global_variables_initializer().run()
-        variable.layer_variable_dump(sess)
+        if (DEBUG_FLAG): variable.layer_variable_dump(sess)
 
     # 计算前向传播结果
     l1_output = inference.inference_ext(x, False, regularizer, 1)
@@ -94,6 +100,9 @@ def train_once(mnist):
     # 处理学习率、优化方法等。
     train_op = learning_rate.get_train_op(global_step, mnist.train.num_examples, my_loss, variables_averages_op)
 
+    # 计算正确率
+    evaluation_step = accuracy.compute_accuracy(y, y_)
+
     # 开始训练过程。
     with tf.name_scope("train_step"):
         with tf.Session() as sess:
@@ -113,21 +122,23 @@ def train_once(mnist):
                 # 每1000轮做一次持久化
                 if i % 1000 == 0:
                     # 将配置信息和记录运行的proto信息传入运行的线程，从而记录运行时每个节点的时间、空间开销。
-                    _, loss_value, step = sess.run([train_op, my_loss, global_step], feed_dict={x: reshaped_xs, y_: ys}
+                    _, loss_value, step, acc = sess.run([train_op, my_loss, global_step, evaluation_step], feed_dict={x: reshaped_xs, y_: ys}
                         , options=run_options, run_metadata=run_metadata)
                     print("After %d training step(s), loss on training batch is %g." % (step, loss_value))
+                    accuracy.print_accuracy(acc)
 
                     persist.do(sess, writer, i, global_step)
                     saver.save(sess, "../model/02_mnist.ckpt", global_step=global_step)
                 else:
-                    _, loss_value, step = sess.run([train_op, my_loss, global_step], feed_dict={x: reshaped_xs, y_: ys})
+                    _, loss_value, step, acc = sess.run([train_op, my_loss, global_step, evaluation_step], feed_dict={x: reshaped_xs, y_: ys})
 
             persist.close(writer)
+
+
 
 def main(argv=None):
     mnist = input_data.read_data_sets(INPUT_DATA_PATCH, one_hot=True)
     train_once(mnist)
-
 
 if __name__ == '__main__':
     print('===begin===')

@@ -6,86 +6,93 @@ import tensorflow as tf
 
 # 初始化基本的神经网络参数
 # 1. input_node, 输入层节点数
+g_input_node = 0
 # 2. output_node, 输出层节点数
+g_output_node = 0
 # 3. batch_size, 每次batch打包的样本个数
+g_batch_size = 0
 # 4. learning_rate_base, 基础学习learning_rate_base率
+g_learning_rate_base = 0.0
 # 5. learning_rate_decay, 学习率的衰减率
+g_learning_rate_decay = 0.0
 # 6. regularization_rate, 描述模型复杂度的正则化项在损失函数中的系数
+g_regularization_rate = 0.0
 # 7. training_steps, 训练轮数
+g_training_steps = 0
 # 8. moving_average_decay, 滑动平均衰减率
+g_moving_average_decay = 0.0
 def init_base_variable(input_node, output_node, batch_size, learning_rate_base, learning_rate_decay, regularization_rate, training_steps, moving_average_decay):
+	global g_input_node, g_output_node, g_batch_size, g_learning_rate_base, g_learning_rate_decay, g_regularization_rate, g_training_steps, g_moving_average_decay
 	with tf.variable_scope('base_variable'):
-		# 1.输入层节点数
-		tf.get_variable("input_node", [1], initializer=tf.constant_initializer(input_node), dtype=tf.int32, trainable=False)
-		# 2.输出层节点数
-		tf.get_variable("output_node", [1], initializer=tf.constant_initializer(output_node), dtype=tf.int32, trainable=False)
-		# 3.每次batch打包的样本个数
-		tf.get_variable("batch_size", [1], initializer=tf.constant_initializer(batch_size), dtype=tf.int32, trainable=False)
-		# 4.基础学习learning_rate_base率
-		tf.get_variable("learning_rate_base", [1], initializer=tf.constant_initializer(learning_rate_base), dtype=tf.float32, trainable=False)
-		# 5.学习率的衰减率
-		tf.get_variable("learning_rate_decay", [1], initializer=tf.constant_initializer(learning_rate_decay), dtype=tf.float32, trainable=False)
-		# 6.描述模型复杂度的正则化项在损失函数中的系数
-		tf.get_variable("regularization_rate", [1], initializer=tf.constant_initializer(regularization_rate), dtype=tf.float32, trainable=False)
-		# 7.训练轮数
-		tf.get_variable("training_steps", [1], initializer=tf.constant_initializer(training_steps), dtype=tf.int32, trainable=False)
-		# 8.滑动平均衰减率
-		tf.get_variable("moving_average_decay", [1], initializer=tf.constant_initializer(moving_average_decay), dtype=tf.float32, trainable=False)
-
+		g_input_node = input_node
+		g_output_node = output_node
+		g_batch_size = batch_size
+		g_learning_rate_base = learning_rate_base
+		g_learning_rate_decay = learning_rate_decay
+		g_regularization_rate = regularization_rate
+		g_training_steps = training_steps
+		g_moving_average_decay = moving_average_decay		
 
 
 # 打印 base variable
-def base_variable_dump(sess):
-	with sess.as_default():
-		print("input_node=%d" % (get_input_node().eval()))
-		print("output_node=%d" % (get_output_node().eval()))
-		print("batch_size=%d" % (get_batch_size().eval()))
-		print("learning_rate_base=%f" % (get_learning_rate_base().eval()))
-		print("learning_rate_decay=%f" % (get_learning_rate_decay().eval()))
-		print("regularization_rate=%f" % (get_regularization_rate().eval()))
-		print("training_steps=%d" % (get_training_steps().eval()))
-		print("moving_average_decay=%f" % (get_moving_average_decay().eval()))
+def base_variable_dump():
+	print("input_node=%d" % (get_input_node()))
+	print("output_node=%d" % (get_output_node()))
+	print("batch_size=%d" % (get_batch_size()))
+	print("learning_rate_base=%f" % (get_learning_rate_base()))
+	print("learning_rate_decay=%f" % (get_learning_rate_decay()))
+	print("regularization_rate=%f" % (get_regularization_rate()))
+	print("training_steps=%d" % (get_training_steps()))
+	print("moving_average_decay=%f" % (get_moving_average_decay()))
 
 
 # 1.输入层节点数
 def get_input_node():
+	global g_input_node
 	with tf.variable_scope('base_variable', reuse=True):
-		return tf.get_variable("input_node", [1], dtype=tf.int32)[0]
+		return g_input_node
 
 # 2.输出层节点数
 def get_output_node():
+	global g_output_node
 	with tf.variable_scope('base_variable', reuse=True):
-		return tf.get_variable("output_node", [1], dtype=tf.int32)[0]
+		return g_output_node
 
 # 3.每次batch打包的样本个数
 def get_batch_size():
+	global g_batch_size
 	with tf.variable_scope('base_variable', reuse=True):
-		return tf.get_variable("batch_size", [1], dtype=tf.int32)[0]
+		return g_batch_size
 
 # 4.基础学习率
 def get_learning_rate_base():
+	global g_learning_rate_base
 	with tf.variable_scope('base_variable', reuse=True):
-		return tf.get_variable("learning_rate_base", [1])[0]
+		return g_learning_rate_base
 
 # 5.学习率的衰减率
 def get_learning_rate_decay():
+	global g_learning_rate_decay
 	with tf.variable_scope('base_variable', reuse=True):
-		return tf.get_variable("learning_rate_decay", [1])[0]
+		return g_learning_rate_decay
 
 # 6.描述模型复杂度的正则化项在损失函数中的系数
 def get_regularization_rate():
+	global g_regularization_rate
 	with tf.variable_scope('base_variable', reuse=True):
-		return tf.get_variable("regularization_rate", [1])[0]
+		return g_regularization_rate
 
 # 7.训练轮数
 def get_training_steps():
+	global g_training_steps
 	with tf.variable_scope('base_variable', reuse=True):
-		return tf.get_variable("training_steps", [1], dtype=tf.int32)[0]
+		return g_training_steps
 
 # 8.滑动平均衰减率
 def get_moving_average_decay():
+	global g_moving_average_decay
 	with tf.variable_scope('base_variable', reuse=True):
-		return tf.get_variable("moving_average_decay", [1])[0]
+		return g_moving_average_decay
 
 
 ###############################################################################
@@ -93,40 +100,43 @@ def get_moving_average_decay():
 
 # 初始化输入数据属性。针对图像数据。
 # input_width: 宽
+g_input_width = 0
 # input_height: 高
+g_input_height = 0
 # input_depth: 深度
+g_input_depth = 0
+
 def init_input_variable(input_width, input_height, input_depth):
+	global g_input_width, g_input_height, g_input_depth
 	with tf.variable_scope('base_variable'):
-		# 1.宽
-		tf.get_variable("input_width", [1], initializer=tf.constant_initializer(input_width), dtype=tf.int32, trainable=False)
-		# 2.高
-		tf.get_variable("input_height", [1], initializer=tf.constant_initializer(input_height), dtype=tf.int32, trainable=False)
-		# 3.深度
-		tf.get_variable("input_depth", [1], initializer=tf.constant_initializer(input_depth), dtype=tf.int32, trainable=False)
+		g_input_width = input_width
+		g_input_height = input_height
+		g_input_depth = input_depth
 
 # 打印 input variable
-def input_variable_dump(sess):
-	with sess.as_default():
-		print("input_width=%d" % (get_input_width().eval()))
-		print("input_height=%d" % (get_input_height().eval()))
-		print("input_depth=%d" % (get_input_depth().eval()))
+def input_variable_dump():
+	print("input_width=%d" % (get_input_width()))
+	print("input_height=%d" % (get_input_height()))
+	print("input_depth=%d" % (get_input_depth()))
 
 
 # 1.输入数据之宽
 def get_input_width():
+	global g_input_width
 	with tf.variable_scope('base_variable', reuse=True):
-		return tf.get_variable("input_width", [1], dtype=tf.int32)[0]
+		return g_input_width
 
 # 2.输入数据之高
 def get_input_height():
+	global g_input_height
 	with tf.variable_scope('base_variable', reuse=True):
-		return tf.get_variable("input_height", [1], dtype=tf.int32)[0]
+		return g_input_height
 
 # 3.输入数据之深度
 def get_input_depth():
+	global g_input_depth
 	with tf.variable_scope('base_variable', reuse=True):
-		return tf.get_variable("input_depth", [1], dtype=tf.int32)[0]
-
+		return g_input_depth
 
 
 ###############################################################################
@@ -162,7 +172,7 @@ def init_layer_variable(layer_tensor):
 		g_layer_tensor = layer_tensor
 
 # 打印
-def layer_variable_dump(sess):
+def layer_variable_dump():
 	global g_layer_tensor
 	print("layer_count=%d" % (get_layer_count()))
 	for ii in range(get_layer_count()):
@@ -180,9 +190,9 @@ def get_gived_layer(layer_index):
 	with tf.variable_scope('base_variable', reuse=True):
 		return g_layer_tensor[layer_index]
 
+
 ###############################################################################
 # 全局打印开关
-
 g_debug_flag = False
 
 def init_debug_flag(debug_flag):

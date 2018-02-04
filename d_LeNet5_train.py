@@ -45,6 +45,18 @@ def train_once(mnist):
     variable.init_base_variable(input_node, 10, 100, 0.01, 0.99, 0.0001, 3001, 0.99)
     if (DEBUG_FLAG): variable.base_variable_dump()
 
+    # 初始化 layer variable
+    variable.init_layer_variable([
+        ["input", [variable.get_input_width(), variable.get_input_height(), variable.get_input_depth()]],
+        ["conv", [5, 32]], 
+        ["max-pool", 2, ["SAME", 2]],
+        ["conv", [5, 64]], 
+        ["max-pool", 2, ["SAME", 2]],
+        ["fc", 512, [1, 1, 0.5]],
+        ["fc", 10]
+        ])
+    if (DEBUG_FLAG): variable.layer_variable_dump()
+
     # 输入数据
     with tf.name_scope('input'):
         # 维度可以自动算出，也就是样本数
@@ -58,19 +70,6 @@ def train_once(mnist):
 
     # 正则化损失函数
     regularizer = tf.contrib.layers.l2_regularizer(variable.get_regularization_rate())
-
-    # 初始化 layer variable
-    variable.init_layer_variable([
-        ["input", [variable.get_input_width(), variable.get_input_height(), variable.get_input_depth()]],
-        ["conv", [5, 32]], 
-        ["max-pool", 2, ["SAME", 2]],
-        ["conv", [5, 64]], 
-        ["max-pool", 2, ["SAME", 2]],
-        ["fc", 512, [1, 1, 0.5]],
-        ["fc", 10]
-        ])
-    if (DEBUG_FLAG): variable.layer_variable_dump()
-        
 
     # 计算前向传播结果
     l1_output = inference.inference_ext(x, False, regularizer, 1)
@@ -104,12 +103,13 @@ def train_once(mnist):
 
             # 测试数据的验证过程放在另外一个独立程序中进行
             for i in range(variable.get_training_steps()):
+                # 读取数据
                 xs, ys = mnist.train.next_batch(variable.get_batch_size())
                 reshaped_xs = np.reshape(xs,(
-                    variable.get_batch_size(),         # 第一维度表示一个batch中样例的个数。
-                    variable.get_input_width(),  # 第二维和第三维表示图片的尺寸
+                    variable.get_batch_size(),      # 第一维度表示一个batch中样例的个数。
+                    variable.get_input_width(),     # 第二维和第三维表示图片的尺寸
                     variable.get_input_height(),
-                    variable.get_input_depth()))  # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.
+                    variable.get_input_depth()))    # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.
 
                 # 每1000轮做一次持久化
                 if i % 1000 == 0:

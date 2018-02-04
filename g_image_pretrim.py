@@ -11,8 +11,14 @@ import GeneralUtil.image_pretrim as image
 
 def main(_):
 	with tf.Session() as sess:
-		image.show_image(sess, image.image_resize_by_zone(sess, image.read_image(
-			"/Volumes/Data/TensorFlow/datasets/cat.jpg"), [30, 90], [2500,400]))
+		image_data = image.read_image("/Volumes/Data/TensorFlow/datasets/cat.jpg")
+		print("***", image_data.get_shape())
+		new_image = image.image_cleanup(image_data)
+		print("***", new_image.get_shape())
+		new_image2 = image.image_resize(new_image, [299, 299], 0)
+		print("***", new_image2.get_shape())
+
+		image.show_image(sess, new_image2)
 
 if __name__ == '__main__':
     tf.app.run()

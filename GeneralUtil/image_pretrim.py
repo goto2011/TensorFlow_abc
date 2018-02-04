@@ -7,6 +7,14 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import os
 import os.path
+import GeneralUtil.base_variable as variable
+
+
+# 模块级打印
+DEBUG_FLAG = variable.get_debug_flag() or True
+DEBUG_MODULE = "image_pretrim"
+# 打印例子：
+# if (DEBUG_FLAG): print(DEBUG_MODULE, ii, layer_variable)
 
 
 # 读取图像文件的原始数据。可传入任何格式的图像，包括jpeg、png、gif及bmp。
@@ -17,13 +25,14 @@ def read_image(image_file):
 
 	_, image_type = os.path.splitext(image_file)
 
-	if (image_type == ".jpg" or image_type == ".jpeg"):
+	if (image_type == ".jpg" or image_type == ".jpeg" or image_type == ".JPG" or image_type == ".JPEG"):
+		if (DEBUG_FLAG): print(DEBUG_MODULE, "is a jpg file")
 		img_data = tf.image.decode_jpeg(image_raw_data)
-	elif (image_type ==".bmp"):
+	elif (image_type ==".bmp" or image_type ==".BMP"):
 		img_data = tf.image.decode_bmp(image_raw_data)
-	elif (image_type ==".git"):
+	elif (image_type ==".git" or image_type ==".GIT"):
 		img_data = tf.image.decode_gif(image_raw_data)
-	elif (image_type ==".png"):
+	elif (image_type ==".png" or image_type ==".PNG"):
 		img_data = tf.image.decode_png(image_raw_data)
 	else:
 		img_data = tf.image.decode_image(image_raw_data)
@@ -54,6 +63,7 @@ def save_to_jpg_file(sess, img_data, img_file):
 # image_new_size: 新的图像大小，格式是 [300, 300]
 # method: 指定图像大小调整算法。 0 表示双线性插值法，1 表示最近邻法， 2 表示双三次插值法， 3 表示面积插值法。各有千秋。
 def image_resize(img_data, image_new_size, method):
+	if (DEBUG_FLAG): print(DEBUG_MODULE, image_new_size, method)
 	resized_image = tf.image.resize_images(img_data, image_new_size, method=method)
 	print(resized_image.get_shape())
 	return resized_image
@@ -82,7 +92,7 @@ def image_resize_by_percent(image_data, percent):
 # left_top: 左上角坐标
 # image_new_size: 截取区域大小（注意：不是右下角坐标）
 def image_resize_by_zone(sess, image_data, left_top, image_new_size):
-	# 校验图像大小
+	# 检查给定的图像大小的正确性。
 	with sess.as_default():
 		ori_size = image_data.eval().shape
 		print(ori_size)
@@ -92,6 +102,82 @@ def image_resize_by_zone(sess, image_data, left_top, image_new_size):
 	resized_image = tf.image.crop_to_bounding_box(image_data, left_top[0], left_top[1], image_new_size[0], image_new_size[1])
 	print(resized_image.get_shape())
 	return resized_image
+
+# 图像翻转
+# method: 翻转方式：0-上下翻转; 1-左右翻转；2-对角线翻转
+# is_random: 是否是随机翻转。 =0，不是； =1，是。
+def image_turn(image_data, method, is_random = 0):
+	if (method == 0):
+		if (is_random == 0):
+			new_image = tf.image.flip_up_down(image_data)
+		else:
+			new_image = tf.image.random_flip_up_down(image_data)
+	elif (method == 1):
+		if (is_random == 0):
+			new_image = tf.image.flip_left_right(image_data)
+		else:
+			new_image = tf.image.random_flip_left_right(image_data)
+	elif (method == 2):
+		if (is_random == 0):
+			new_image = tf.image.transpose_image(image_data)
+		else:
+			print(DEBUG_MODULE, "Error: image turn method error.")
+			return []
+	else:
+		print(DEBUG_MODULE, "Error: image turn method error.")
+		return []
+
+	print(new_image.get_shape())
+	return new_image
+
+
+# 图像色彩调整
+# method: 色彩调整方式：0-亮度；1-对比度；2-色相；3-饱和度。
+# new_value： 调整的目标值。可能是单个数字，也可能是两个数组成的向量。
+# is_random: 是否是随机调整。 =0，不是； =1，是。
+def image_color_adjust(image_data, method, new_value, is_random=0):
+	if (DEBUG_FLAG): print(DEBUG_MODULE, method, new_value, is_random)
+	if (method == 0):
+		if (is_random == 0):
+			new_image = tf.image.adjust_brightness(image_data, new_value)
+		else:
+			new_value = abs(new_value)
+			new_image = tf.image.random_brightness(image_data, new_value)
+	elif (method == 1):
+		if (is_random == 0):
+			new_image = tf.image.adjust_contrast(image_data, new_value)
+		else:
+			if ((len(new_value) != 2) or (new_value[0] >= new_value[1])):
+				print(DEBUG_MODULE, "Error: image color adjust param error.")
+				return []
+			new_image = tf.image.random_contrast(image_data, new_value[0], new_value[1])
+	elif (method == 2):
+		if (is_random == 0):
+			new_image = tf.image.adjust_hue(image_data, new_value)
+		else:
+			if ((len(new_value) != 2) or (new_value[0] >= new_value[1])):
+				print(DEBUG_MODULE, "Error: image color adjust param error.")
+				return []
+			new_image = tf.image.random_hue(image_data, new_value[0], new_value[1])
+	elif (method == 3):
+		if (is_random == 0):
+			new_image = tf.image.adjust_saturation(image_data, new_value)
+		else:
+			if ((len(new_value) != 2) or (new_value[0] >= new_value[1])):
+				print(DEBUG_MODULE, "Error: image color adjust param error.")
+				return []
+			new_image = tf.image.random_saturation(image_data, new_value[0], new_value[1])
+	else:
+		print(DEBUG_MODULE, "Error: image color adjust method error.")
+		return []
+
+	print(new_image.get_shape())
+	return new_image
+
+# 图像标准化，即把图像的数据均值变为0，方差变为1.
+def image_cleanup(image_data):
+	return tf.image.per_image_standardization(image_data)
+
 
 
 

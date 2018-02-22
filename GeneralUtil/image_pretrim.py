@@ -26,7 +26,6 @@ def read_image(image_file):
 	_, image_type = os.path.splitext(image_file)
 
 	if (image_type == ".jpg" or image_type == ".jpeg" or image_type == ".JPG" or image_type == ".JPEG"):
-		if (DEBUG_FLAG): print(DEBUG_MODULE, "is a jpg file")
 		img_data = tf.image.decode_jpeg(image_raw_data)
 	elif (image_type ==".bmp" or image_type ==".BMP"):
 		img_data = tf.image.decode_bmp(image_raw_data)
@@ -37,7 +36,7 @@ def read_image(image_file):
 	else:
 		img_data = tf.image.decode_image(image_raw_data)
 
-	# 转化数据类型为 float32，方便后续处理。
+	# 转化数据类型为 float32 ，方便后续处理。
 	img_data = tf.image.convert_image_dtype(img_data, dtype=tf.float32)
 
 	return img_data
@@ -54,6 +53,8 @@ def show_image(sess, img_data):
 # 把图片数据保存到文件，采用 JPG 格式。
 def save_to_jpg_file(sess, img_data, img_file):
 	with sess.as_default():
+		# Input 'image' of 'EncodeJpeg' Op has type float32 that does not match expected type of uint8.
+		img_data = tf.image.convert_image_dtype(img_data, dtype=tf.uint8)
 		encode_image = tf.image.encode_jpeg(img_data)
 		with tf.gfile.GFile(img_file, "wb") as f:
 			f.write(encode_image.eval())

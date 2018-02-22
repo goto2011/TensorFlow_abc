@@ -114,12 +114,8 @@ def get_bottleneck_path(image_lists, label_name, index, category):
 # 对照片进行预处理。
 # image_data: 图片数据
 def run_bottleneck_on_image(sess, image_data):
-	if (DEBUG_FLAG): print(DEBUG_MODULE, "run_bottleneck_on_image", variable.get_input_width(), 
-		variable.get_input_height(), image_data.get_shape())
-
 	# 1. 在降低图片分辨率之前，先将图片进行亮度、对比度等处理，将图片标准化。
 	new_image = image_pretrim.image_cleanup(image_data)
-	if (DEBUG_FLAG): print(DEBUG_MODULE, new_image.get_shape())
 
 	# 2. 降低图片分辨率到神经网络需要的状态。
 	return image_pretrim.image_resize(new_image, [variable.get_input_width(), 
@@ -140,7 +136,7 @@ def get_or_create_bottleneck(sess, image_lists, label_name, index, category):
 		if (DEBUG_FLAG): print(DEBUG_MODULE, image_path)
 		# 读取图片内容
 		image_data = image_pretrim.read_image(image_path)
-		if (DEBUG_FLAG): print(DEBUG_MODULE, image_data.get_shape())
+		# if (DEBUG_FLAG): print(DEBUG_MODULE, image_data.get_shape())
 		# 对照片进行预处理
 		bottleneck_values = run_bottleneck_on_image(sess, image_data)
 		# 将特征向量存储到文件
@@ -174,7 +170,7 @@ def get_random_cached_bottlenecks(sess, image_lists, category):
 		bottlenecks.append(bottleneck)
 
 		# 给 y_ 值赋值
-		ground_truth = np.zeros(variable.get_output_node(), dtype=np.float32)
+		ground_truth = tf.zeros(variable.get_output_node(), dtype=tf.float32)
 		ground_truth[label_index] = 1.0
 		ground_truths.append(ground_truth)
 
@@ -190,7 +186,7 @@ def get_test_bottlenecks(sess, image_lists):
 		category = 'testing'
 		for index, unused_base_name in enumerate(image_lists[label_name][category]):  # 枚举此类别中的测试数据集中的每张图片
 			bottleneck = get_or_create_bottleneck(sess, image_lists, label_name, index, category)
-			ground_truth = np.zeros(variable.get_output_node(), dtype=np.float32)
+			ground_truth = tf.zeros(variable.get_output_node(), dtype=tf.float32)
 			# 给y值赋值
 			ground_truth[label_index] = 1.0
 			bottlenecks.append(bottleneck)
@@ -273,21 +269,19 @@ def main(_):
 	# 计算正确率
 	evaluation_step = accuracy.compute_accuracy(y, y_)
 
-	if (DEBUG_FLAG): print(DEBUG_MODULE, "train start")
-
 	# 训练开始
 	with tf.Session() as sess:
 		# 初始化参数
 		init = tf.global_variables_initializer()
 		sess.run(init)
 
-		if (DEBUG_FLAG): print(DEBUG_MODULE, "train start 1")
-
 		# 训练开始
 		for i in range(variable.get_training_steps()):
 			# 每次随机获取一个batch的训练数据
 			train_bottlenecks, train_ground_truth = get_random_cached_bottlenecks(sess, image_lists, 'training')
+			if (DEBUG_FLAG): print(DEBUG_MODULE, len(train_bottlenecks), len(train_ground_truth))
 			# 训练
+			# setting an array element with a sequence.  / 用序列设置数组元素。
 			sess.run(train_step, feed_dict={x: train_bottlenecks, y_: train_ground_truth})
 
 			# 验证
@@ -315,7 +309,7 @@ def main(_):
 				bottlenecks.append(bottleneck)
 
 				# 给 y_ 赋值
-				ground_truth = np.zeros(variable.get_output_node(), dtype=np.float32)
+				ground_truth = tf.zeros(variable.get_output_node(), dtype=tf.float32)
 				ground_truth[label_index] = 1.0
 				ground_truths.append(ground_truth)
 

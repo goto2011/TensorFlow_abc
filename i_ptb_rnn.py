@@ -10,7 +10,7 @@ import tensorflow as tf
 import reader
 
 DATA_PATH = "/Volumes/Data/TensorFlow/datasets/PTB/data"
-# 隐层规模
+# 隐层规模，即隐层状态向量的长度。
 HIDDEN_SIZE = 200
 # LSTM结构的层数
 NUM_LAYERS = 2
@@ -26,7 +26,7 @@ TRAIN_NUM_STEP = 35
 
 # 测试数据batch的大小
 EVAL_BATCH_SIZE = 1
-# 测试数据的截断长度。在测试时不需要使用截断。
+# 测试数据的截断长度。1表示不截断。在测试时不需要使用截断。
 EVAL_NUM_STEP = 1
 # 使用训练数据的轮数
 NUM_EPOCH = 2
@@ -48,16 +48,18 @@ class PTBModel(object):
         # 定义预期输出。
         self.targets = tf.placeholder(tf.int32, [batch_size, num_steps])
         
-        # 定义LSTM结构
+        # 定义LSTM结构。
         lstm_cell = tf.contrib.rnn.BasicLSTMCell(HIDDEN_SIZE)
-        # 区分训练和测试
+
+        # 只对训练集使用 dropout。
         if is_training:
         	# 指定 dropout 参数
             lstm_cell = tf.contrib.rnn.DropoutWrapper(lstm_cell, output_keep_prob=KEEP_PROB)
-        # 使用LSTM结构及训练时使用dropout 来定义rnn神经网络。
+
+        # 使用LSTM结构定义rnn神经网络。
         cell = tf.contrib.rnn.MultiRNNCell([lstm_cell]*NUM_LAYERS)
         
-        # 初始化最初的状态，即全零。
+        # 初始化最初的状态为全零。
         self.initial_state = cell.zero_state(batch_size, tf.float32)
         
         # 计算单词向量的维度（此次为200万）。总共有VOCAB_SIZE个单词，每个单词的向量维度为HIDDEN_SIZE。
@@ -147,15 +149,17 @@ def main():
 	# 获取原始数据
     train_data, valid_data, test_data, _ = reader.ptb_raw_data(DATA_PATH)
 
-    # 计算一个epoch需要训练的次数
+    # 训练集
     train_data_len = len(train_data)
     train_batch_len = train_data_len // TRAIN_BATCH_SIZE
     train_epoch_size = (train_batch_len - 1) // TRAIN_NUM_STEP
 
+    # 验证集
     valid_data_len = len(valid_data)
     valid_batch_len = valid_data_len // EVAL_BATCH_SIZE
     valid_epoch_size = (valid_batch_len - 1) // EVAL_NUM_STEP
 
+    # 测试集
     test_data_len = len(test_data)
     test_batch_len = test_data_len // EVAL_BATCH_SIZE
     test_epoch_size = (test_batch_len - 1) // EVAL_NUM_STEP
@@ -163,15 +167,15 @@ def main():
     # 定义初始化函数
     initializer = tf.random_uniform_initializer(-0.05, 0.05)
 
-    # 定义训练用的RNN。
+    # 定义训练用的RNN
     with tf.variable_scope("language_model", reuse=None, initializer=initializer):
         train_model = PTBModel(True, TRAIN_BATCH_SIZE, TRAIN_NUM_STEP)
 
-    # 定义验证用的RNN。
+    # 定义验证用的RNN
     with tf.variable_scope("language_model", reuse=True, initializer=initializer):
         eval_model = PTBModel(False, EVAL_BATCH_SIZE, EVAL_NUM_STEP)
 
-    # 训练模型。
+    # 训练模型开始
     with tf.Session() as session:
         tf.global_variables_initializer().run()
 
@@ -182,7 +186,7 @@ def main():
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coord)
 
-        # 训练模型
+        # 训练轮次
         for i in range(NUM_EPOCH):
             print("In iteration: %d" % (i + 1))
             # 在所有训练数据上训练

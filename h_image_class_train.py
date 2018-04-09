@@ -31,22 +31,12 @@ DEBUG_MODULE = "h_image_class_train"
 # inception-v3 模型瓶颈层的节点个数
 BOTTLENECK_TENSOR_SIZE = 2048
 
-# inception-v3 模型中代表瓶颈层结果的张量名称。在训练模型时，可通过 tensor.name 来获取张量的名称。
-BOTTLENECK_TENSOR_NAME = 'pool_3/_reshape:0'
-# 图像输入张量所对应的名称
-JPEG_DATA_TENSOR_NAME = 'DecodeJpeg/contents:0'
-
-# 下载的谷歌训练好的inception-v3模型文件目录
-MODEL_DIR = '/Volumes/Data/TensorFlow/model/inception_dec_2015'
-# 下载的谷歌训练好的inception-v3模型文件名
-MODEL_FILE = 'tensorflow_inception_graph.pb'
-
-# 保存训练数据通过瓶颈层后提取的特征向量。因为一个训练数据会被使用多次，所以将原始图像通过 inception-v3 模型计算出的特征向量存放在文件中，避免重复计算。
-CACHE_DIR = '/Volumes/Data/TensorFlow/tmp/bottleneck'
-
-# 图片数据的文件夹。其中每个子文件夹代表一个需要分类的类比，而且分类的名称就是文件夹名。
+# 输入数据。其中每个子文件夹代表一个需要分类的类比，分类的名称就是文件夹名。
 INPUT_DATA = '/Volumes/Data/TensorFlow/datasets/person_photo'
 # INPUT_DATA = '/Volumes/Data/TensorFlow/datasets/flower_photos'
+
+# 保存训练数据通过瓶颈层后提取的特征向量。因为一个训练数据会被使用多次，所以将原始图像通过 inception-v3 模型计算出的特征向量存放在文件中，避免重复计算。
+CACHE_DIR = '/Volumes/Data/TensorFlow/tmp/person'
 
 # 验证的数据百分比
 VALIDATION_PERCENTAGE = 10
@@ -156,6 +146,7 @@ def get_or_create_bottleneck(sess, image_lists, label_name, index, category):
 def get_random_cached_bottlenecks(sess, image_lists, category):
 	bottlenecks = []
 	ground_truths = []
+	# 排序
 	label_lists = sorted(list(image_lists.keys()))
 	for _ in range(variable.get_batch_size()):
 		# 随机一个类别和图片编号加入当前的训练数据
@@ -170,7 +161,9 @@ def get_random_cached_bottlenecks(sess, image_lists, category):
 		bottlenecks.append(bottleneck)
 
 		# 给 y_ 值赋值
-		ground_truth = tf.zeros(variable.get_output_node(), dtype=tf.float32)
+		# ground_truth = tf.zeros(variable.get_output_node(), dtype=tf.float32)
+		ground_truth = np.zeros(variable.get_output_node(), dtype=np.float32)
+		# ground_truth = [0.0, 0.0, 0.0]
 		ground_truth[label_index] = 1.0
 		ground_truths.append(ground_truth)
 
@@ -279,7 +272,12 @@ def main(_):
 		for i in range(variable.get_training_steps()):
 			# 每次随机获取一个batch的训练数据
 			train_bottlenecks, train_ground_truth = get_random_cached_bottlenecks(sess, image_lists, 'training')
+
 			if (DEBUG_FLAG): print(DEBUG_MODULE, len(train_bottlenecks), len(train_ground_truth))
+			# ('h_image_class_train', <tf.Tensor 'convert_image:0' shape=(?, ?, ?) dtype=float32>, 3)
+			# ('h_image_class_train', <tf.Tensor 'Squeeze:0' shape=(299, 299, ?) dtype=float32>, 3)
+			if (DEBUG_FLAG): print(DEBUG_MODULE, train_bottlenecks[0], len(train_ground_truth[0]))
+
 			# 训练
 			# setting an array element with a sequence.  / 用序列设置数组元素。
 			sess.run(train_step, feed_dict={x: train_bottlenecks, y_: train_ground_truth})

@@ -39,6 +39,8 @@ def read_image(image_file):
 	# 转化数据类型为 float32 ，方便后续处理。
 	img_data = tf.image.convert_image_dtype(img_data, dtype=tf.float32)
 
+	print img_data.eval()
+
 	return img_data
 
 

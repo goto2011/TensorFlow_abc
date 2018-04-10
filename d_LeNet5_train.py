@@ -6,7 +6,6 @@ import os
 import numpy as np
 from tensorflow.examples.tutorials.mnist import input_data
 
-import GeneralUtil.infernece_LeNet5 as inference
 import GeneralUtil.average as average
 import GeneralUtil.loss as loss
 import GeneralUtil.learning_rate as learning_rate
@@ -14,7 +13,7 @@ import GeneralUtil.base_variable as variable
 import GeneralUtil.accuracy as accuracy
 
 # 模块级打印
-DEBUG_FLAG = variable.get_debug_flag() or True
+DEBUG_FLAG = base_variable.get_debug_flag() or True
 DEBUG_MODULE = "d_LeNet5_train"
 # 打印例子：
 # if (DEBUG_FLAG): print(DEBUG_MODULE, ii, layer_variable)
@@ -29,8 +28,8 @@ def train_once(mnist):
     # 1.输入数据之宽
     # 2.输入数据之高
     # 3.输入数据之深
-    variable.init_input_variable(28, 28, 1)
-    if (DEBUG_FLAG): variable.input_variable_dump()
+    my_var = variable.init_input_variable(28, 28, 1)
+    if (DEBUG_FLAG): my_var.input_variable_dump()
 
     # 初始化 base variable
     # 1. input_node, 输入层节点数
@@ -41,13 +40,13 @@ def train_once(mnist):
     # 6. regularization_rate, 描述模型复杂度的正则化项在损失函数中的系数
     # 7. training_steps, 训练轮数
     # 8. moving_average_decay, 滑动平均衰减率
-    input_node = variable.get_input_width() * variable.get_input_height() * variable.get_input_depth()
-    variable.init_base_variable(input_node, 10, 100, 0.01, 0.99, 0.0001, 3001, 0.99)
-    if (DEBUG_FLAG): variable.base_variable_dump()
+    input_node = my_var.get_input_width() * my_var.get_input_height() * my_var.get_input_depth()
+    my_var.init_base_variable(input_node, 10, 100, 0.01, 0.99, 0.0001, 3001, 0.99)
+    if (DEBUG_FLAG): my_var.base_variable_dump()
 
     # 初始化 layer variable
-    variable.init_layer_variable([
-        ["input", [variable.get_input_width(), variable.get_input_height(), variable.get_input_depth()]],
+    my_var.init_layer_variable([
+        ["input", [my_var.get_input_width(), my_var.get_input_height(), my_var.get_input_depth()]],
         ["conv", [5, 32]], 
         ["max-pool", 2, ["SAME", 2]],
         ["conv", [5, 64]], 
@@ -55,29 +54,29 @@ def train_once(mnist):
         ["fc", 512, [1, 1, 0.5]],
         ["fc", 10]
         ])
-    if (DEBUG_FLAG): variable.layer_variable_dump()
+    if (DEBUG_FLAG): my_var.layer_variable_dump()
 
     # 输入数据
     with tf.name_scope('input'):
         # 维度可以自动算出，也就是样本数
         x = tf.placeholder(tf.float32, [
-            variable.get_batch_size(),     # 第一维度表示一个batch中样例的个数。
-            variable.get_input_width(),    # 第二维和第三维表示图片的尺寸
-            variable.get_input_height(),
-            variable.get_input_depth()],   # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.
+            my_var.get_batch_size(),     # 第一维度表示一个batch中样例的个数。
+            my_var.get_input_width(),    # 第二维和第三维表示图片的尺寸
+            my_var.get_input_height(),
+            my_var.get_input_depth()],   # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.
             name='x-input')
-        y_ = tf.placeholder(tf.float32, [None, variable.get_output_node()], name='y-input')
+        y_ = tf.placeholder(tf.float32, [None, my_var.get_output_node()], name='y-input')
 
     # 正则化损失函数
-    regularizer = tf.contrib.layers.l2_regularizer(variable.get_regularization_rate())
+    regularizer = tf.contrib.layers.l2_regularizer(my_var.get_regularization_rate())
 
     # 计算前向传播结果
-    l1_output = inference.inference_ext(x, False, regularizer, 1)
-    l2_output = inference.inference_ext(l1_output, False, regularizer, 2)
-    l3_output = inference.inference_ext(l2_output, False, regularizer, 3)
-    l4_output = inference.inference_ext(l3_output, False, regularizer, 4)
-    l5_output = inference.inference_ext(l4_output, False, regularizer, 5)
-    y = inference.inference_ext(l5_output, False, regularizer, 6)
+    l1_output = my_var.inference_ext(x, False, regularizer, 1)
+    l2_output = my_var.inference_ext(l1_output, False, regularizer, 2)
+    l3_output = my_var.inference_ext(l2_output, False, regularizer, 3)
+    l4_output = my_var.inference_ext(l3_output, False, regularizer, 4)
+    l5_output = my_var.inference_ext(l4_output, False, regularizer, 5)
+    y = my_var.inference_ext(l5_output, False, regularizer, 6)
 
     # 定义训练轮数及相关的滑动平均类
     global_step = tf.Variable(0, trainable=False)   # 将训练轮数的变量指定为不参与训练的参数

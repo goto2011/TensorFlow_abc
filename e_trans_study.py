@@ -15,6 +15,14 @@ import GeneralUtil.file_system as file_system
 import GeneralUtil.data_set as data_set
 import GeneralUtil.accuracy as accuracy
 import GeneralUtil.loss as loss
+import GeneralUtil.base_variable as variable
+
+
+# 模块级打印
+DEBUG_FLAG = variable.get_debug_flag() or True
+DEBUG_MODULE = "e_image_class_train"
+# 打印例子：
+# if (DEBUG_FLAG): print(DEBUG_MODULE, ii, layer_variable)
 
 
 # inception-v3 模型瓶颈层的节点个数
@@ -245,6 +253,13 @@ def main(_):
         for i in range(STEPS):
             # 每次随机获取一个batch的训练数据
             train_bottlenecks, train_ground_truth = get_random_cached_bottlenecks(sess, n_classes, image_lists, BATCH, 'training', jpeg_data_tensor, bottleneck_tensor)
+            # ('', 100, 100)
+            if (DEBUG_FLAG):print(DEBUG_MODULE, len(train_bottlenecks), len(train_ground_truth))
+            # ('', array([ 0.16851467,  0.66669655,  0.32118168, ...,  0.07431143, 0.54442036,  0.59177148], dtype=float32), 3)
+            if (DEBUG_FLAG):print(DEBUG_MODULE, train_bottlenecks[0], len(train_ground_truth[0]))
+            # ('', array([ 1.,  0.,  0.], dtype=float32), 3)
+            if (DEBUG_FLAG):print(DEBUG_MODULE, train_ground_truth[0], len(train_ground_truth[0]))
+
             # 训练
             sess.run(train_step, feed_dict={bottleneck_input: train_bottlenecks, ground_truth_input: train_ground_truth})
 

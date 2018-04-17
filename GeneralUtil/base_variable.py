@@ -4,9 +4,11 @@ __author__ = 'duangan'
 import tensorflow as tf
 import numpy as np
 
+g_debug_flag = True
+DEBUG_FLAG = g_debug_flag or True
+DEBUG_MODULE = "base_variable"
 
 class base_variable(object):
-	g_debug_flag = True
 
 	# 初始化输入数据属性。针对图像数据。
 	# input_width: 宽
@@ -19,9 +21,9 @@ class base_variable(object):
 
 	# 打印 input variable
 	def input_variable_dump(self):
-		print("input_width=%d" % (get_input_width()))
-		print("input_height=%d" % (get_input_height()))
-		print("input_depth=%d" % (get_input_depth()))
+		print("input_width=%d" % (self.get_input_width()))
+		print("input_height=%d" % (self.get_input_height()))
+		print("input_depth=%d" % (self.get_input_depth()))
 
 
 	# 1.输入数据之宽
@@ -61,14 +63,14 @@ class base_variable(object):
 
 	# 打印 base variable
 	def base_variable_dump(self):
-		print("input_node=%d" % (get_input_node()))
-		print("output_node=%d" % (get_output_node()))
-		print("batch_size=%d" % (get_batch_size()))
-		print("learning_rate_base=%f" % (get_learning_rate_base()))
-		print("learning_rate_decay=%f" % (get_learning_rate_decay()))
-		print("regularization_rate=%f" % (get_regularization_rate()))
-		print("training_steps=%d" % (get_training_steps()))
-		print("moving_average_decay=%f" % (get_moving_average_decay()))
+		print("input_node=%d" % (self.get_input_node()))
+		print("output_node=%d" % (self.get_output_node()))
+		print("batch_size=%d" % (self.get_batch_size()))
+		print("learning_rate_base=%f" % (self.get_learning_rate_base()))
+		print("learning_rate_decay=%f" % (self.get_learning_rate_decay()))
+		print("regularization_rate=%f" % (self.get_regularization_rate()))
+		print("training_steps=%d" % (self.get_training_steps()))
+		print("moving_average_decay=%f" % (self.get_moving_average_decay()))
 
 
 	# 1.输入层节点数
@@ -129,12 +131,12 @@ class base_variable(object):
 					dropout_rate: dropout 系数，为一(0, 1.0) 之间的浮点数。默认值为0。
 	'''
 	def init_layer_variable(self, layer_tensor):
-		self.ayer_tensor = layer_tensor
+		self.layer_tensor = layer_tensor
 
 	# 打印
 	def layer_variable_dump(self):
-		print("layer_count=%d" % (get_layer_count()))
-		for ii in range(get_layer_count()):
+		print("layer_count=%d" % (self.get_layer_count()))
+		for ii in range(self.get_layer_count()):
 			print("layer_tensor[%d]" % ii, self.layer_tensor[ii])
 
 	# 1.隐层的数量
@@ -149,12 +151,12 @@ class base_variable(object):
 	def get_previous_depth(self, layer_index):
 	    if (layer_index == 1):
 	        # 返回输入数据的深度
-	        layer_variable = get_gived_layer(0)
+	        layer_variable = self.get_gived_layer(0)
 	        return layer_variable[1][2]
 	    # 如果不是输入层，那么就要找最邻近的卷积层
 	    elif (layer_index > 1):
 	        for ii in range(0, layer_index)[::-1]:
-	            layer_variable = get_gived_layer(ii)
+	            layer_variable = self.get_gived_layer(ii)
 	            if (DEBUG_FLAG): print(DEBUG_MODULE, ii, layer_variable)
 	            if (layer_variable[0] == "conv"):
 	                return layer_variable[1][1];
@@ -174,11 +176,11 @@ class base_variable(object):
 
 	# 判断当前层是否为第一个全连通层。
 	def is_first_fc_layer(self, layer_index):
-	    layer_variable = variable.get_gived_layer(layer_index)
+	    layer_variable = self.get_gived_layer(layer_index)
 	    if (layer_variable[0] != "fc"):
 	        return False
 	    for ii in range(0, layer_index)[::-1]:
-	        layer_variable = get_gived_layer(ii)
+	        layer_variable = self.get_gived_layer(ii)
 	        if (DEBUG_FLAG): print(DEBUG_MODULE, ii, layer_variable)
 	        if (layer_variable[0] == "fc"):
 	            return False
@@ -188,14 +190,14 @@ class base_variable(object):
 	# 使用变量化的元参数来生成神经网络结构。
 	def inference_ext(self, input_data, train, regularizer, layer_index):
 	    with tf.variable_scope('layer' + bytes(layer_index)):
-	        layer_variable = get_gived_layer(layer_index)
+	        layer_variable = self.get_gived_layer(layer_index)
 	        print(DEBUG_MODULE, "***", layer_index, layer_variable)
 
 	        if (layer_variable[0] == "conv"):
 	            kernel_length = layer_variable[1][0]
 	            kernel_depth = layer_variable[1][1]
-	            input_depth = get_previous_depth(layer_index)
-	            padding, step = get_other_variable(layer_variable)
+	            input_depth = self.get_previous_depth(layer_index)
+	            padding, step = self.get_other_variable(layer_variable)
 
 	            if (DEBUG_FLAG): print(DEBUG_MODULE, kernel_length, kernel_depth, input_depth)
 
@@ -207,14 +209,14 @@ class base_variable(object):
 
 	        elif (layer_variable[0] == "max-pool"):
 	            kernel_length = layer_variable[1]
-	            padding, step = get_other_variable(layer_variable)
+	            padding, step = self.get_other_variable(layer_variable)
 
 	            return tf.nn.max_pool(input_data, ksize = [1,kernel_length,kernel_length,1], 
 	                strides=[1,step,step,1], padding=padding)        
 
 	        elif (layer_variable[0] == "fc"):
 	            # 如果是第一个全连通层，需要把上一层的输入数据拉直为向量。
-	            if (is_first_fc_layer(layer_index)):
+	            if (self.is_first_fc_layer(layer_index)):
 	                # 获取输入数据的维度
 	                pool_shape = input_data.get_shape().as_list()
 	                if (DEBUG_FLAG): print(DEBUG_MODULE, pool_shape)
@@ -224,7 +226,7 @@ class base_variable(object):
 	                input_data = tf.reshape(input_data, [pool_shape[0], nodes])
 	            else:
 	                # 如果不是第一个时，就直接取上一个。因为所有的全连通层都在一起，上一个也是全连通层。
-	                nodes = variable.get_gived_layer(layer_index - 1)[1]
+	                nodes = self.get_gived_layer(layer_index - 1)[1]
 
 	            current_nodes = layer_variable[1]
 
@@ -266,10 +268,12 @@ class base_variable(object):
 	# 全局打印开关
 	@staticmethod
 	def init_debug_flag(debug_flag):
+		global g_debug_flag
 		g_debug_flag = debug_flag
 
 	@staticmethod
 	def get_debug_flag():
+		global g_debug_flag
 		return g_debug_flag
 
 

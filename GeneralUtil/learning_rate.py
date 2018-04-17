@@ -6,14 +6,14 @@ import base_variable
 
 
 # 处理学习率
-def get_train_op(global_step, train_number, loss, variables_averages_op):
+def get_train_op(global_step, my_var, train_number, loss, variables_averages_op):
 	with tf.name_scope("learning_rate"):
 		# 设置指数衰减的学习率
 		learning_rate = tf.train.exponential_decay(
-			base_variable.get_learning_rate_base(),     #基础学习率
+			my_var.get_learning_rate_base(),     #基础学习率
 			global_step,            #迭代轮数
-			train_number / base_variable.get_batch_size(),  #过完所有训练数据需要的迭代次数
-			base_variable.get_learning_rate_decay(),    #学习率衰减速率
+			train_number / my_var.get_batch_size(),  #过完所有训练数据需要的迭代次数
+			my_var.get_learning_rate_decay(),    #学习率衰减速率
 			staircase=True)
 
 		# 优化损失函数，用梯度下降法来优化

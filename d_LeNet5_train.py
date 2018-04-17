@@ -13,7 +13,7 @@ import GeneralUtil.base_variable as variable
 import GeneralUtil.accuracy as accuracy
 
 # 模块级打印
-DEBUG_FLAG = base_variable.get_debug_flag() or True
+DEBUG_FLAG = variable.base_variable.get_debug_flag() or True
 DEBUG_MODULE = "d_LeNet5_train"
 # 打印例子：
 # if (DEBUG_FLAG): print(DEBUG_MODULE, ii, layer_variable)
@@ -28,7 +28,7 @@ def train_once(mnist):
     # 1.输入数据之宽
     # 2.输入数据之高
     # 3.输入数据之深
-    my_var = variable.init_input_variable(28, 28, 1)
+    my_var = variable.base_variable(28, 28, 1)
     if (DEBUG_FLAG): my_var.input_variable_dump()
 
     # 初始化 base variable
@@ -82,13 +82,13 @@ def train_once(mnist):
     global_step = tf.Variable(0, trainable=False)   # 将训练轮数的变量指定为不参与训练的参数
 
     # 处理平滑
-    variables_averages_op = average.get_average_op(global_step)
+    variables_averages_op = average.get_average_op(global_step, my_var.get_moving_average_decay())
 
     # 处理损失函数
     my_loss = loss.get_total_loss(y, y_)
 
     # 处理学习率、优化方法等。
-    train_op = learning_rate.get_train_op(global_step, mnist.train.num_examples, my_loss, variables_averages_op)
+    train_op = learning_rate.get_train_op(global_step, my_var, mnist.train.num_examples, my_loss, variables_averages_op)
 
     # 计算正确率
     evaluation_step = accuracy.compute_accuracy(y, y_)
@@ -101,14 +101,14 @@ def train_once(mnist):
             tf.global_variables_initializer().run()
 
             # 测试数据的验证过程放在另外一个独立程序中进行
-            for i in range(variable.get_training_steps()):
+            for i in range(my_var.get_training_steps()):
                 # 读取数据
-                xs, ys = mnist.train.next_batch(variable.get_batch_size())
+                xs, ys = mnist.train.next_batch(my_var.get_batch_size())
                 reshaped_xs = np.reshape(xs,(
-                    variable.get_batch_size(),      # 第一维度表示一个batch中样例的个数。
-                    variable.get_input_width(),     # 第二维和第三维表示图片的尺寸
-                    variable.get_input_height(),
-                    variable.get_input_depth()))    # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.
+                    my_var.get_batch_size(),      # 第一维度表示一个batch中样例的个数。
+                    my_var.get_input_width(),     # 第二维和第三维表示图片的尺寸
+                    my_var.get_input_height(),
+                    my_var.get_input_depth()))    # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.
 
                 # 每1000轮做一次持久化
                 if i % 1000 == 0:

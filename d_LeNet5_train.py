@@ -25,23 +25,23 @@ INPUT_DATA_PATCH="./MNIST_data/"
 def train_once(mnist):
 
     # 初始化输入数据参数
-    # 1.输入数据之宽
-    # 2.输入数据之高
-    # 3.输入数据之深
-    my_var = variable.base_variable(28, 28, 1)
+    # 1. 输入数据之宽
+    # 2. 输入数据之高
+    # 3. 输入数据之深
+    # 4. 训练集的样本数量
+    # 5. 每次batch打包的样本个数.
+    # 6. 计划的训练轮数.
+    my_var = variable.base_variable(28, 28, 1, mnist.train.num_examples, 100, 3001)
     if (DEBUG_FLAG): my_var.input_variable_dump()
 
     # 初始化 base variable
-    # 1. input_node, 输入层节点数
-    # 2. output_node, 输出层节点数
-    # 3. batch_size, 每次batch打包的样本个数
-    # 4. learning_rate_base, 基础学习learning_rate_base率
-    # 5. learning_rate_decay, 学习率的衰减率
-    # 6. regularization_rate, 描述模型复杂度的正则化项在损失函数中的系数
-    # 7. training_steps, 训练轮数
-    # 8. moving_average_decay, 滑动平均衰减率
-    input_node = my_var.get_input_width() * my_var.get_input_height() * my_var.get_input_depth()
-    my_var.init_base_variable(input_node, 10, 100, 0.01, 0.99, 0.0001, 3001, 0.99)
+    # 1. 输入层节点数
+    # 2. 输出层节点数. 此处为 10.
+    # 3. 基础学习learning_rate_base率
+    # 4. 学习率的衰减率
+    # 5. 描述模型复杂度的正则化项在损失函数中的系数
+    # 6. 滑动平均衰减率
+    my_var.init_base_variable(my_var.get_input_node_count(), 10, 0.01, 0.99, 0.0001, 0.99)
     if (DEBUG_FLAG): my_var.base_variable_dump()
 
     # 初始化 layer variable
@@ -60,7 +60,7 @@ def train_once(mnist):
     with tf.name_scope('input'):
         # 维度可以自动算出，也就是样本数
         x = tf.placeholder(tf.float32, [
-            my_var.get_batch_size(),     # 第一维度表示一个batch中样例的个数。
+            my_var.get_train_batch_size(),     # 第一维度表示一个batch中样例的个数。
             my_var.get_input_width(),    # 第二维和第三维表示图片的尺寸
             my_var.get_input_height(),
             my_var.get_input_depth()],   # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.
@@ -82,13 +82,13 @@ def train_once(mnist):
     global_step = tf.Variable(0, trainable=False)   # 将训练轮数的变量指定为不参与训练的参数
 
     # 处理平滑
-    variables_averages_op = average.get_average_op(global_step, my_var.get_moving_average_decay())
+    variables_averages_op = average.get_average_op(my_var, global_step)
 
     # 处理损失函数
     my_loss = loss.get_total_loss(y, y_)
 
     # 处理学习率、优化方法等。
-    train_op = learning_rate.get_train_op(global_step, my_var, mnist.train.num_examples, my_loss, variables_averages_op)
+    train_op = learning_rate.get_train_op(my_var, global_step, my_loss, variables_averages_op)
 
     # 计算正确率
     evaluation_step = accuracy.compute_accuracy(y, y_)
@@ -103,9 +103,9 @@ def train_once(mnist):
             # 测试数据的验证过程放在另外一个独立程序中进行
             for i in range(my_var.get_training_steps()):
                 # 读取数据
-                xs, ys = mnist.train.next_batch(my_var.get_batch_size())
+                xs, ys = mnist.train.next_batch(my_var.get_train_batch_size())
                 reshaped_xs = np.reshape(xs,(
-                    my_var.get_batch_size(),      # 第一维度表示一个batch中样例的个数。
+                    my_var.get_train_batch_size(),      # 第一维度表示一个batch中样例的个数。
                     my_var.get_input_width(),     # 第二维和第三维表示图片的尺寸
                     my_var.get_input_height(),
                     my_var.get_input_depth()))    # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.

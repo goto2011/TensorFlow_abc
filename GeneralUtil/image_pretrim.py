@@ -11,7 +11,7 @@ import GeneralUtil.base_variable as variable
 
 
 # 模块级打印
-DEBUG_FLAG = variable.get_debug_flag() or True
+DEBUG_FLAG = variable.base_variable.get_debug_flag() or True
 DEBUG_MODULE = "image_pretrim"
 # 打印例子：
 # if (DEBUG_FLAG): print(DEBUG_MODULE, ii, layer_variable)

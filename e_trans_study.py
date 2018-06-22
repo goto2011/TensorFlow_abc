@@ -2,7 +2,8 @@
 """
 @author: duangan
 
-卷积神经网络 Inception-v3模型 迁移学习
+卷积神经网络 Inception-v3模型 迁移学习.
+目的: 代码和书本上基本一样, 仅为了学习.
 """
 import glob
 import os.path
@@ -19,7 +20,7 @@ import GeneralUtil.base_variable as variable
 
 
 # 模块级打印
-DEBUG_FLAG = variable.get_debug_flag() or True
+DEBUG_FLAG = variable.base_variable.get_debug_flag() or True
 DEBUG_MODULE = "e_image_class_train"
 # 打印例子：
 # if (DEBUG_FLAG): print(DEBUG_MODULE, ii, layer_variable)
@@ -218,7 +219,8 @@ def main(_):
     with gfile.FastGFile(os.path.join(MODEL_DIR, MODEL_FILE), 'rb') as f:
         graph_def = tf.GraphDef()
         graph_def.ParseFromString(f.read())
-    # 加载模型，返回对应名称的张量
+
+    # 加载模型，返回对应名称的张量(即迁移学习)
     bottleneck_tensor, jpeg_data_tensor = tf.import_graph_def(graph_def, return_elements=[BOTTLENECK_TENSOR_NAME, JPEG_DATA_TENSOR_NAME])
 
     # 定义新的神经网络输入。这个输入是新的图片经过inception-v3 模型前向传播到瓶颈层时的节点取值。

@@ -3,6 +3,7 @@
 @author: duangan
 
 卷积神经网络 Inception-v3模型 迁移学习
+目的: 算法不变, 但数据集变了: 计算自己的照片.
 """
 import glob
 import os.path

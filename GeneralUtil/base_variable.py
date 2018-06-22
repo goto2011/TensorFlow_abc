@@ -11,19 +11,32 @@ DEBUG_MODULE = "base_variable"
 class base_variable(object):
 
 	# 初始化输入数据属性。针对图像数据。
-	# input_width: 宽
-	# input_height: 高
-	# input_depth: 数据深度, 黑白为1, 彩色为3
-	def __init__(self, input_width, input_height, input_depth):
+	# 1. input_width: 宽
+	# 2. input_height: 高
+	# 3. input_depth: 数据深度, 黑白为1, 彩色为3
+	# 
+	# 4. train_example_count : 训练集的样本数量
+	# 5. train_batch_size: 每次batch打包的样本个数. 一次输入多个样本, 可提高效率.
+	# 6. training_steps: 计划的训练轮数(没有一定)
+	def __init__(self, input_width, input_height, input_depth, 
+		train_example_count, train_batch_size, training_steps):
 		self.input_width = input_width
 		self.input_height = input_height
 		self.input_depth = input_depth
+
+		self.train_example_count = train_example_count
+		self.train_batch_size = train_batch_size
+		self.training_steps = training_steps
 
 	# 打印 input variable
 	def input_variable_dump(self):
 		print("input_width=%d" % (self.get_input_width()))
 		print("input_height=%d" % (self.get_input_height()))
 		print("input_depth=%d" % (self.get_input_depth()))
+
+		print("train_example_count=%d" % (self.get_train_example_count()))
+		print("train_batch_size=%d" % (self.get_train_batch_size()))
+		print("training_steps=%d" % (self.get_training_steps()))
 
 
 	# 1.输入数据之宽
@@ -38,38 +51,50 @@ class base_variable(object):
 	def get_input_depth(self):
 		return self.input_depth
 
+	# 计算输入节点数
+	def get_input_node_count(self):
+		return self.input_width * self.input_height * self.input_depth
+
+	# 4. train_example_count : 训练集的样本数量
+	def get_train_example_count(self):
+		return self.train_example_count
+
+	# 5. train_batch_size: 每次batch打包的样本个数
+	def get_train_batch_size(self):
+		return self.train_batch_size
+
+	# 计算一轮的迭代次数
+	def get_iterate_count(self):
+		return self.train_example_count / self.train_batch_size
+
+	# 6. training_steps: 计划的训练轮数
+	def get_training_steps(self):
+		return self.training_steps
 
 ###############################################################################
 	# 初始化基本的神经网络参数
 	# 1. input_node, 输入层节点数
 	# 2. output_node, 输出层节点数
-	# 3. batch_size, 每次batch打包的样本个数
-	# 4. learning_rate_base, 基础学习learning_rate_base率
-	# 5. learning_rate_decay, 学习率的衰减率
-	# 6. regularization_rate, 描述模型复杂度的正则化项在损失函数中的系数
-	# 7. training_steps, 训练轮数
-	# 8. moving_average_decay, 滑动平均衰减率
-	def init_base_variable(self, input_node, output_node, batch_size, 
-			learning_rate_base, learning_rate_decay, regularization_rate, 
-			training_steps, moving_average_decay):
+	# 3. learning_rate_base, 基础学习learning_rate_base率
+	# 4. learning_rate_decay, 学习率的衰减率
+	# 5. regularization_rate, 描述模型复杂度的正则化项在损失函数中的系数
+	# 6. moving_average_decay, 滑动平均衰减率
+	def init_base_variable(self, input_node, output_node, learning_rate_base, 
+		learning_rate_decay, regularization_rate, moving_average_decay):
 		self.input_node = input_node
 		self.output_node = output_node
-		self.batch_size = batch_size
 		self.learning_rate_base = learning_rate_base
 		self.learning_rate_decay = learning_rate_decay
 		self.regularization_rate = regularization_rate
-		self.training_steps = training_steps
 		self.moving_average_decay = moving_average_decay		
 
 	# 打印 base variable
 	def base_variable_dump(self):
 		print("input_node=%d" % (self.get_input_node()))
 		print("output_node=%d" % (self.get_output_node()))
-		print("batch_size=%d" % (self.get_batch_size()))
 		print("learning_rate_base=%f" % (self.get_learning_rate_base()))
 		print("learning_rate_decay=%f" % (self.get_learning_rate_decay()))
 		print("regularization_rate=%f" % (self.get_regularization_rate()))
-		print("training_steps=%d" % (self.get_training_steps()))
 		print("moving_average_decay=%f" % (self.get_moving_average_decay()))
 
 
@@ -81,27 +106,19 @@ class base_variable(object):
 	def get_output_node(self):
 		return self.output_node
 
-	# 3.每次batch打包的样本个数
-	def get_batch_size(self):
-		return self.batch_size
-
-	# 4.基础学习率
+	# 3.基础学习率
 	def get_learning_rate_base(self):
 		return self.learning_rate_base
 
-	# 5.学习率的衰减率
+	# 4.学习率的衰减率
 	def get_learning_rate_decay(self):
 		return self.learning_rate_decay
 
-	# 6.描述模型复杂度的正则化项在损失函数中的系数
+	# 5.描述模型复杂度的正则化项在损失函数中的系数
 	def get_regularization_rate(self):
 		return self.regularization_rate
 
-	# 7.训练轮数
-	def get_training_steps(self):
-		return self.training_steps
-
-	# 8.滑动平均衰减率
+	# 6.滑动平均衰减率
 	def get_moving_average_decay(self):
 		return self.moving_average_decay
 

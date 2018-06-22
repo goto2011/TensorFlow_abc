@@ -29,15 +29,15 @@ def train_once(mnist):
     # 2. 输入数据之高
     # 3. 输入数据之深
     # 4. 训练集的样本数量
-    # 5. 每次batch打包的样本个数.
-    # 6. 计划的训练轮数.
+    # 5. 每次batch打包的样本个数
+    # 6. 计划的训练轮数
     my_var = variable.base_variable(28, 28, 1, mnist.train.num_examples, 100, 3001)
     if (DEBUG_FLAG): my_var.input_variable_dump()
 
     # 初始化 base variable
     # 1. 输入层节点数
-    # 2. 输出层节点数. 此处为 10.
-    # 3. 基础学习learning_rate_base率
+    # 2. 输出层节点数.
+    # 3. 基础学习率
     # 4. 学习率的衰减率
     # 5. 描述模型复杂度的正则化项在损失函数中的系数
     # 6. 滑动平均衰减率

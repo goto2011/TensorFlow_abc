@@ -13,15 +13,21 @@ def random_alloc_train_set(data_list, test_percent, valid_percent):
 	train_set = []
 	test_set = []
 	valid_set = []
+	train_count = 0
+	test_count = 0
+	valid_count = 0
 
 	for data_item in data_list:
 		# 随机讲数据分到训练数据集、测试集和验证集
 		chance = np.random.randint(100)
 		if chance < valid_percent:
 			valid_set.append(data_item)
+			valid_count+=1
 		elif chance < (test_percent + valid_percent):
 			test_set.append(data_item)
+			test_count+=1
 		else:
 			train_set.append(data_item)
+			train_count+=1
 
-	return train_set, test_set, valid_set
+	return train_set, test_set, valid_set, train_count, test_count, valid_count

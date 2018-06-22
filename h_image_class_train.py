@@ -31,7 +31,8 @@ DEBUG_MODULE = "h_image_class_train"
 # inception-v3 模型瓶颈层的节点个数
 BOTTLENECK_TENSOR_SIZE = 2048
 
-# 输入数据。其中每个子文件夹代表一个需要分类的类比，分类的名称就是文件夹名。
+# 输入数据路径。
+# 其中每个子文件夹代表一个需要分类的类比，分类的名称就是文件夹名。
 INPUT_DATA = '/Volumes/Data/TensorFlow/datasets/person_photo'
 # INPUT_DATA = '/Volumes/Data/TensorFlow/datasets/flower_photos'
 
@@ -39,9 +40,10 @@ INPUT_DATA = '/Volumes/Data/TensorFlow/datasets/person_photo'
 # 模型计算出的特征向量存放在文件中，避免重复计算。
 CACHE_DIR = '/Volumes/Data/TensorFlow/tmp/person'
 
-# 验证的数据百分比
+# 验证集占的百分比
 VALIDATION_PERCENTAGE = 10
-# 测试的数据百分比
+
+# 测试集占的百分比
 TEST_PERCENTACE = 10
 
 
@@ -51,11 +53,14 @@ TEST_PERCENTACE = 10
 def create_image_lists(testing_percentage, validation_percentage):
     # 返回值
     result = {}
+    train_count = 0
+    test_count = 0
+    valid_count = 0
 
     # 获取目录下所有子目录
     sub_dirs = file_system.get_dirs_list(INPUT_DATA)
 
-    # 遍历目录数组，每次处理一种
+    # 遍历目录数组，把图片分成3个集合. 每次处理一个种类.
     for sub_dir in sub_dirs:
         dir_name = os.path.basename(sub_dir)
 
@@ -64,8 +69,12 @@ def create_image_lists(testing_percentage, validation_percentage):
         file_list = file_system.get_files_by_ext(
             os.path.join(INPUT_DATA, dir_name), extensions)
 
-        training_images, testing_images, validation_images = data_set.random_alloc_train_set(
-        	file_list, testing_percentage, validation_percentage)
+        training_images, testing_images, validation_images, my_train_count, \
+            my_test_count, my_valid_count = data_set.random_alloc_train_set(file_list, \
+            testing_percentage, validation_percentage)
+        train_count += my_train_count
+        test_count += my_test_count
+        valid_count += my_valid_count
 
         result[dir_name] = {
             'dir': dir_name,
@@ -73,7 +82,7 @@ def create_image_lists(testing_percentage, validation_percentage):
             'testing': testing_images,
             'validation': validation_images
         }
-    return result
+    return result, train_count, test_count, valid_count
 
 
 # 这个函数通过类别名称、所属数据集和图片编号获取一张图片的地址
@@ -105,17 +114,17 @@ def get_bottleneck_path(image_lists, label_name, index, category):
 
 # 对照片进行预处理。
 # image_data: 图片数据
-def run_bottleneck_on_image(sess, image_data):
+def run_bottleneck_on_image(sess, var, image_data):
     # 1. 在降低图片分辨率之前，先将图片进行亮度、对比度等处理，将图片标准化。
     new_image = image_pretrim.image_cleanup(image_data)
 
     # 2. 降低图片分辨率到神经网络需要的状态。
-    return image_pretrim.image_resize(new_image, [variable.get_input_width(),
-                                                  variable.get_input_height()], 0)
+    return image_pretrim.image_resize(new_image, 
+        [var.get_input_width(), var.get_input_height()], 0)
 
 
 # 获取一张图片对应的特征向量的路径。它会先试图寻找已经计算并保存下来的特征向量，找不到再计算该特征向量，然后保存到文件中去。
-def get_or_create_bottleneck(sess, image_lists, label_name, index, category):
+def get_or_create_bottleneck(sess, var, image_lists, label_name, index, category):
     sub_dir_path = os.path.join(CACHE_DIR, image_lists[
                                 label_name]['dir'])  # 到类别的文件夹
     if not os.path.exists(sub_dir_path):
@@ -126,14 +135,13 @@ def get_or_create_bottleneck(sess, image_lists, label_name, index, category):
     # 特征向量文件不存在，则新建
     if not os.path.exists(bottleneck_path):
         # 获取图片原始路径
-        image_path = get_image_path(
-            image_lists, INPUT_DATA, label_name, index, category)
+        image_path = get_image_path(image_lists, INPUT_DATA, label_name, index, category)
         if (DEBUG_FLAG): print(DEBUG_MODULE, image_path)
         # 读取图片内容
         image_data = image_pretrim.read_image(image_path)
         # if (DEBUG_FLAG): print(DEBUG_MODULE, image_data.get_shape())
         # 对照片进行预处理
-        bottleneck_values = run_bottleneck_on_image(sess, image_data)
+        bottleneck_values = run_bottleneck_on_image(sess, var, image_data)
         # 将特征向量存储到文件
         image_pretrim.save_to_jpg_file(sess, bottleneck_values, bottleneck_path)
     else:
@@ -148,27 +156,27 @@ def get_or_create_bottleneck(sess, image_lists, label_name, index, category):
 # image_lists:
 # category: 所属的数据集
 # return: 特征向量列表，类别列表
-def get_random_cached_bottlenecks(sess, image_lists, category):
+def get_random_cached_bottlenecks(sess, var, image_lists, category):
     bottlenecks = []
     ground_truths = []
     # 排序
     label_lists = sorted(list(image_lists.keys()))
-    for _ in range(variable.get_batch_size()):
+    for _ in range(var.get_train_batch_size()):
         # 随机一个类别和图片编号加入当前的训练数据
-        label_index = random.randrange(variable.get_output_node())
+        label_index = random.randrange(var.get_output_node())
         # 随机图片的类别名
         label_name = label_lists[label_index]
         # 随机图片的编号
         image_index = random.randrange(65536)
 
         # 给 x 值赋值
-        bottleneck = get_or_create_bottleneck(
-            sess, image_lists, label_name, image_index, category)
+        bottleneck = get_or_create_bottleneck(sess, var, image_lists, label_name, 
+            image_index, category)
         bottlenecks.append(bottleneck)
 
         # 给 y_ 值赋值
-        # ground_truth = tf.zeros(variable.get_output_node(), dtype=tf.float32)
-        ground_truth = np.zeros(variable.get_output_node(), dtype=np.float32)
+        # ground_truth = tf.zeros(var.get_output_node(), dtype=tf.float32)
+        ground_truth = np.zeros(var.get_output_node(), dtype=np.float32)
         ground_truth[label_index] = 1.0
         ground_truths.append(ground_truth)
     # ('', array([ 0.16851467,  0.66669655,  0.32118168, ...,  0.07431143, 0.54442036,  0.59177148], dtype=float32), 3)
@@ -177,20 +185,19 @@ def get_random_cached_bottlenecks(sess, image_lists, category):
 
 
 # 获取全部的测试数据
-def get_test_bottlenecks(sess, image_lists):
+def get_test_bottlenecks(sess, var, image_lists):
     bottlenecks = []
     ground_truths = []
-    # ['dandelion', 'daisy', 'sunflowers', 'roses', 'tulips']
+    # key 即分类
     label_name_list = sorted(list(image_lists.keys()))
     # 枚举每个类别,如:0 sunflowers
     for label_index, label_name in enumerate(label_name_list):
         category = 'testing'
         # 枚举此类别中的测试数据集中的每张图片
         for index, unused_base_name in enumerate(image_lists[label_name][category]):
-            bottleneck = get_or_create_bottleneck(
-                sess, image_lists, label_name, index, category)
-            ground_truth = tf.zeros(
-                variable.get_output_node(), dtype=tf.float32)
+            bottleneck = get_or_create_bottleneck(sess, var, image_lists, label_name, 
+                index, category)
+            ground_truth = tf.zeros(var.get_output_node(), dtype=tf.float32)
             # 给y值赋值
             ground_truth[label_index] = 1.0
             bottlenecks.append(bottleneck)
@@ -200,29 +207,31 @@ def get_test_bottlenecks(sess, image_lists):
 
 def main(_):
     # 读取所有图片，并随机分配到各个数据集
-    image_lists = create_image_lists(TEST_PERCENTACE, VALIDATION_PERCENTAGE)
+    image_lists, train_count, test_count, valid_count = create_image_lists(TEST_PERCENTACE, VALIDATION_PERCENTAGE)
     out_node = len(image_lists.keys())
-    print(out_node)
+    print("%s %d" % ("train example is ", train_count))
+    print("%s %d" % ("train class is ", out_node))
 
     # 初始化输入数据参数
-    # 1.输入数据之宽
-    # 2.输入数据之高
-    # 3.输入数据之深
-    my_var = variable.base_variable(299, 299, 3)
+    # 1. 输入数据之宽
+    # 2. 输入数据之高
+    # 3. 输入数据之深
+    # 4. 训练集的样本数量
+    # 5. 每次batch打包的样本个数
+    # 6. 计划的训练轮数
+    my_var = variable.base_variable(299, 299, 3, train_count, 100, 500)
     if (DEBUG_FLAG):
         my_var.input_variable_dump()
 
     # 初始化 base variable
-    # 1. input_node, 输入层节点数
-    # 2. output_node, 输出层节点数
-    # 3. batch_size, 每次batch打包的样本个数
-    # 4. learning_rate_base, 基础学习learning_rate_base率
-    # 5. learning_rate_decay, 学习率的衰减率
-    # 6. regularization_rate, 描述模型复杂度的正则化项在损失函数中的系数
-    # 7. training_steps, 训练轮数
-    # 8. moving_average_decay, 滑动平均衰减率
+    # 1. 输入层节点数
+    # 2. 输出层节点数.
+    # 3. 基础学习率
+    # 4. 学习率的衰减率
+    # 5. 描述模型复杂度的正则化项在损失函数中的系数
+    # 6. 滑动平均衰减率
     my_var.init_base_variable(
-        my_var.get_input_node_count(), out_node, 100, 0.01, 0.99, 0.0001, 500, 0.99)
+        my_var.get_input_node_count(), out_node, 0.01, 0.99, 0.0001, 0.99)
     if (DEBUG_FLAG):
         my_var.base_variable_dump()
 
@@ -244,10 +253,10 @@ def main(_):
     with tf.name_scope('input'):
         # 维度可以自动算出，也就是样本数
         x = tf.placeholder(tf.float32, [
-            my_var.get_batch_size(),     # 第一维度表示一个batch中样例的个数。
-            my_var.get_input_width(),    # 第二维和第三维表示图片的尺寸
+            my_var.get_train_batch_size(),     # 第一维度表示一个batch中样例的个数。
+            my_var.get_input_width(),          # 第二维和第三维表示图片的尺寸
             my_var.get_input_height(),
-            my_var.get_input_depth()],   # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.
+            my_var.get_input_depth()],         # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.
             name='x-input')
         y_ = tf.placeholder(
             tf.float32, [None, my_var.get_output_node()], name='y-input')
@@ -269,20 +278,21 @@ def main(_):
     global_step = tf.Variable(0, trainable=False)
 
     # 处理平滑
-    variables_averages_op = average.get_average_op(global_step, my_var.get_moving_average_decay())
+    variables_averages_op = average.get_average_op(my_var, global_step)
 
     # 处理损失函数
     my_loss = loss.get_total_loss(y, y_)
 
     # 处理学习率、优化方法等
-    train_step = learning_rate.get_train_op(
-        global_step, my_var, my_loss, variables_averages_op)
+    train_step = learning_rate.get_train_op(my_var, global_step, my_loss, 
+        variables_averages_op)
 
     # 计算正确率
     evaluation_step = accuracy.compute_accuracy(y, y_)
 
     # 训练开始
     with tf.Session() as sess:
+        print("训练开始！")
         # 初始化参数
         init = tf.global_variables_initializer()
         sess.run(init)
@@ -291,7 +301,7 @@ def main(_):
         for i in range(my_var.get_training_steps()):
             # 每次随机获取一个batch的训练数据
             train_bottlenecks, train_ground_truth = get_random_cached_bottlenecks(
-                sess, image_lists, 'training')
+                sess, my_var, image_lists, 'training')
 
             # ('', 100, 100)
             if (DEBUG_FLAG):print(DEBUG_MODULE, len(train_bottlenecks), len(train_ground_truth))
@@ -307,12 +317,12 @@ def main(_):
 
             # 验证
             if i % 100 == 0 or i + 1 == my_var.get_training_steps():
-                validation_bottlenecks, validation_ground_truth = get_random_cached_bottlenecks(sess,
-                                                                                                image_lists, 'validation')
-                validation_accuracy = sess.run(evaluation_step, feed_dict={
-                                               x: validation_bottlenecks, y_: validation_ground_truth})
-                print('Step %d: Validation accuracy on random sampled %d examples = %.1f%%' % (
-                    i, my_var.get_batch_size(), validation_accuracy * 100))
+                validation_bottlenecks, validation_ground_truth = \
+                    get_random_cached_bottlenecks(sess, my_var, image_lists, 'validation')
+                validation_accuracy = sess.run(evaluation_step, feed_dict = \
+                    {x: validation_bottlenecks, y_: validation_ground_truth})
+                print('Step %d: Validation accuracy on random sampled %d examples = %.1f%%'
+                    % (i, my_var.get_train_batch_size(), validation_accuracy * 100))
 
         # 测试开始
         print("训练完成！")
@@ -330,8 +340,8 @@ def main(_):
                 ground_truths = []
 
                 # 给 x 赋值
-                bottleneck = get_or_create_bottleneck(
-                    sess, image_lists, label_name, index, 'testing')
+                bottleneck = get_or_create_bottleneck(sess, my_var, image_lists, 
+                    label_name, index, 'testing')
                 bottlenecks.append(bottleneck)
 
                 # 给 y_ 赋值
@@ -357,8 +367,7 @@ def main(_):
                           (predict_name))
 
         # 累计测试正确率。
-        test_bottlenecks, test_ground_truth = get_test_bottlenecks(
-            sess, image_lists)
+        test_bottlenecks, test_ground_truth = get_test_bottlenecks(sess, my_var, image_lists)
         test_accuracy = sess.run(evaluation_step, feed_dict={
                                  x: test_bottlenecks, y_: test_ground_truth})
         print('总体测试准确率是 %.1f%%' % (test_accuracy * 100))

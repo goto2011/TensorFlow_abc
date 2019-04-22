@@ -7,6 +7,7 @@ import tensorflow as tf
 import os
 import os.path
 import glob
+from pathlib import Path
 
 
 # 获取指定目录的目录列。包括子目录。按字母排序。
@@ -55,9 +56,10 @@ def save_tensor_to_file(file_name, tesor):
 
 # 读取文件中的张量数据
 def read_tensor_from_file(file_name):
-	with open(file_name, 'r') as read_file:
+	data_folder = Path(file_name)
+	with open(data_folder, 'r') as read_file:
 		read_string = read_file.read()
 
-    # 字符串转float数组
+	# 字符串转float数组
 	return [float(x) for x in read_string.split(',')]
 

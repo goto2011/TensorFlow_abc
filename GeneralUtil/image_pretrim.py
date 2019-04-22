@@ -66,7 +66,7 @@ def save_to_jpg_file(sess, img_data, img_file):
 # image_new_size: 新的图像大小，格式是 [300, 300]
 # method: 指定图像大小调整算法。 0 表示双线性插值法，1 表示最近邻法， 2 表示双三次插值法， 3 表示面积插值法。各有千秋。
 def image_resize(img_data, image_new_size, method):
-	if (DEBUG_FLAG): print(DEBUG_MODULE, image_new_size, method)
+	# if (DEBUG_FLAG): print(DEBUG_MODULE, image_new_size, method)
 	resized_image = tf.image.resize_images(img_data, image_new_size, method=method)
 	print(resized_image.get_shape())
 	return resized_image

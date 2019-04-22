@@ -33,12 +33,11 @@ BOTTLENECK_TENSOR_SIZE = 2048
 
 # 输入数据路径。
 # 其中每个子文件夹代表一个需要分类的类比，分类的名称就是文件夹名。
-INPUT_DATA = '/Volumes/Data/TensorFlow/datasets/person_photo'
-# INPUT_DATA = '/Volumes/Data/TensorFlow/datasets/flower_photos'
+INPUT_DATA = '../datasets/person_photo'
 
 # 保存训练数据通过瓶颈层后提取的特征向量。因为一个训练数据会被使用多次，所以将原始图像通过 inception-v3
 # 模型计算出的特征向量存放在文件中，避免重复计算。
-CACHE_DIR = '/Volumes/Data/TensorFlow/tmp/person'
+CACHE_DIR = '../tmp/person'
 
 # 验证集占的百分比
 VALIDATION_PERCENTAGE = 10
@@ -253,10 +252,10 @@ def main(_):
     with tf.name_scope('input'):
         # 维度可以自动算出，也就是样本数
         x = tf.placeholder(tf.float32, [
-            my_var.get_train_batch_size(),     # 第一维度表示一个batch中样例的个数。
-            my_var.get_input_width(),          # 第二维和第三维表示图片的尺寸
+            my_var.get_train_batch_size(),   # 第一维度表示一个batch中样例的个数
+            my_var.get_input_width(),        # 第二维和第三维表示图片的尺寸
             my_var.get_input_height(),
-            my_var.get_input_depth()],         # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.
+            my_var.get_input_depth()],       # 第四维表示图片的深度，黑白图片是1，RGB彩色是3.
             name='x-input')
         y_ = tf.placeholder(
             tf.float32, [None, my_var.get_output_node()], name='y-input')
@@ -292,29 +291,27 @@ def main(_):
 
     # 训练开始
     with tf.Session() as sess:
-        print("训练开始！")
         # 初始化参数
         init = tf.global_variables_initializer()
         sess.run(init)
 
-        # 训练开始
+        print("训练开始！")
         for i in range(my_var.get_training_steps()):
             # 每次随机获取一个batch的训练数据
             train_bottlenecks, train_ground_truth = get_random_cached_bottlenecks(
                 sess, my_var, image_lists, 'training')
-
-            # ('', 100, 100)
+            # 100, 100
             if (DEBUG_FLAG):print(DEBUG_MODULE, len(train_bottlenecks), len(train_ground_truth))
-            # ('', <tf.Tensor 'Squeeze:0' shape=(299, 299, ?) dtype=float32>, 3)
-            if (DEBUG_FLAG):print(DEBUG_MODULE, train_bottlenecks[0], len(train_ground_truth[0]))
-            # ('', array([ 1.,  0.,  0.], dtype=float32), 3)
+            # Tensor("resize_images/Squeeze:0", shape=(299, 299, ?), dtype=float32)
+            if (DEBUG_FLAG):print(DEBUG_MODULE, train_bottlenecks[0])
+            # [0. 1. 0.] 3
             if (DEBUG_FLAG):print(DEBUG_MODULE, train_ground_truth[0], len(train_ground_truth[0]))
-
-            # 训练
-            # setting an array element with a sequence.  / 用序列设置数组元素。
+            print("训练开始2！")
+            # 执行训练
+            # ValueError: setting an array element with a sequence.  / 用序列设置数组元素。
             sess.run(train_step, feed_dict={
                      x: train_bottlenecks, y_: train_ground_truth})
-
+            print("训练开始3！")
             # 验证
             if i % 100 == 0 or i + 1 == my_var.get_training_steps():
                 validation_bottlenecks, validation_ground_truth = \

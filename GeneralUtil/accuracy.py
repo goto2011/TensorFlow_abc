@@ -3,8 +3,8 @@ __author__ = 'duangan'
 
 import time
 import tensorflow as tf
-import inference
-import base_variable
+import GeneralUtil.inference_mnist
+import GeneralUtil.base_variable
 
 '''[summary]
 
@@ -21,7 +21,7 @@ def evaluate(mnist, model_path, time_interval, input_node, output_node, moving_a
 		y_ = tf.placeholder(tf.float32, [None, output_node], name='y-input')
 		validate_feed = {x: mnist.validation.images, y_: mnist.validation.labels}
 
-		y = inference.inference(x, None, input_node, output_node)
+		y = inference_mnist.inference(x, None, input_node, output_node)
 
 		# 计算正确率
 		accuracy = compute_accuracy(y, y_)

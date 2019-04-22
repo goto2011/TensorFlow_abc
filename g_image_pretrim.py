@@ -11,7 +11,7 @@ import GeneralUtil.image_pretrim as image
 
 def main(_):
 	with tf.Session() as sess:
-		image_data = image.read_image("/Volumes/Data/TensorFlow/datasets/cat.jpg")
+		image_data = image.read_image("../datasets/cat.jpg")
 		print("***", image_data.get_shape())
 		new_image = image.image_cleanup(image_data)
 		print("***", new_image.get_shape())

@@ -2,7 +2,7 @@
 __author__ = 'duangan'
 
 import tensorflow as tf
-import base_variable
+import GeneralUtil.base_variable
 
 '''配置神经网络的参数'''
 LAYER1_NODE = 500  # 隐藏层神经元个数

@@ -1,0 +1,5 @@
+model_checkpoint_path: "b_mnist.ckpt-3001"
+all_model_checkpoint_paths: "b_mnist.ckpt-1"
+all_model_checkpoint_paths: "b_mnist.ckpt-1001"
+all_model_checkpoint_paths: "b_mnist.ckpt-2001"
+all_model_checkpoint_paths: "b_mnist.ckpt-3001"
